@@ -2,6 +2,7 @@
 # This is meant to be used by the administrators of the project only.
 import glob
 import os
+import yaml
 from django.core.management.base import BaseCommand
 
 from compile_server.app.models import Resource, Example
@@ -30,8 +31,28 @@ class Command(BaseCommand):
             # For now, consider all files in the directory to be part of the
             # example
             if not os.path.isdir(d):
-                print "dir parameter should be a directory"
+                print "{} is not a valid directory".format(d)
                 return
+
+            # Look for 'example.yaml'
+            example_yaml = os.path.join(d, 'example.yaml')
+            if not os.path.isfile(example_yaml):
+                print 'There is no "example.yaml" in {}'.format(d)
+                return
+
+            # Check contents of example.yaml
+            with open(example_yaml, 'rb') as f:
+                try:
+                    metadata = yaml.load(f.read())
+                except:
+                    print format_traceback
+                    print 'Could not decode yaml in {}'.format(example_yaml)
+                    return
+                for field in ['name', 'description']:
+                    if field not in metadata:
+                        print 'example.yaml should contain a field {}'.format(
+                            field)
+                        return
 
             resources = []
             for file in glob.glob(os.path.join(d, '*')):
@@ -41,6 +62,7 @@ class Command(BaseCommand):
                     r.save()
                     resources.append(r)
 
-            e = Example(description='hello')
+            e = Example(description=metadata['description'],
+                        name=metadata['name'])
             e.save()
             e.resources.add(*resources)
