@@ -23,7 +23,6 @@ from compile_server.app import views
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
-router.register(r'programs', views.ProgramSet)
 
 urlpatterns = [
     url(r'^', include(router.urls)),

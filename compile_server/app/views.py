@@ -13,9 +13,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from compile_server.app.serializers import (UserSerializer,
                                             GroupSerializer,
-                                            ProgramSerializer)
+                                            ResourceSerializer)
 
-from compile_server.app.models import Program
+from compile_server.app.models import Resource
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -34,10 +34,10 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
 
 
-class ProgramSet(viewsets.ModelViewSet):
+class ResourceSet(viewsets.ModelViewSet):
     """View/Edit"""
-    queryset = Program.objects.all()
-    serializer_class = ProgramSerializer
+    queryset = Resource.objects.all()
+    serializer_class = ResourceSerializer
 
 
 @api_view(['POST'])
@@ -50,7 +50,14 @@ def check_program(request):
 
 
 @api_view(['GET'])
+def resources(request, example_name):
+    """Return a list of programs for the given example"""
+    return Response()
+
+
+@api_view(['GET'])
 def examples(request):
+    """Return a list of example names and their description"""
     return Response()
 
 
