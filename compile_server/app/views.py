@@ -15,7 +15,7 @@ from compile_server.app.serializers import (UserSerializer,
                                             GroupSerializer,
                                             ResourceSerializer)
 
-from compile_server.app.models import Resource
+from compile_server.app.models import Resource, Example
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -51,14 +51,20 @@ def check_program(request):
 
 @api_view(['GET'])
 def resources(request, example_name):
-    """Return a list of programs for the given example"""
+    """Return the list of resources for the given example"""
+    # TODO
     return Response()
 
 
 @api_view(['GET'])
 def examples(request):
     """Return a list of example names and their description"""
-    return Response()
+    examples = Example.objects.all()
+    results = []
+    for e in examples:
+        results.append({'name': e.name, 'description': e.description})
+
+    return Response(results)
 
 
 @api_view(['GET'])

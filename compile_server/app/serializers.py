@@ -27,7 +27,7 @@ class ResourceSerializer(serializers.Serializer):
         return Snippet.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
-        instance.code = validated_data.get('code', instance.code)
+        instance.contents = validated_data.get('contents', instance.contents)
         instance.basename = validated_data.get('basename', instance.basename)
         instance.save()
         return instance

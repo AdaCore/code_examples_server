@@ -33,8 +33,6 @@ urlpatterns = [
     # Check one program
     url(r'^check_program/', views.check_program),
 
-    url(r'^examples/', views.examples),
-
     # Get a list of the examples
     url(r'^examples/', views.examples),
 
