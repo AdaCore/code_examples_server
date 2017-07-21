@@ -20,7 +20,7 @@ class ResourceSerializer(serializers.Serializer):
         model = Resource
         fields = ('basename', 'code')
 
-    code = serializers.CharField(style={'base_template': 'textarea.html'})
+    contents = serializers.CharField(style={'base_template': 'textarea.html'})
     basename = serializers.CharField(style={'base_template': 'textarea.html'})
 
     def create(self, validated_data):

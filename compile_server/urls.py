@@ -37,5 +37,5 @@ urlpatterns = [
     url(r'^examples/', views.examples),
 
     # Get the details on one example
-    url(r'^example/([^/])+', views.example),
+    url(r'^example/([^\/]+)$', views.example),
 ]

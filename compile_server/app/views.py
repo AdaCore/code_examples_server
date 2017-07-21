@@ -50,13 +50,6 @@ def check_program(request):
 
 
 @api_view(['GET'])
-def resources(request, example_name):
-    """Return the list of resources for the given example"""
-    # TODO
-    return Response()
-
-
-@api_view(['GET'])
 def examples(request):
     """Return a list of example names and their description"""
     examples = Example.objects.all()
@@ -69,4 +62,13 @@ def examples(request):
 
 @api_view(['GET'])
 def example(request, name):
-    return Response()
+    # TODO: create an example serializer
+    # TODO: catch case where the example does not exist
+    e = Example.objects.filter(name=name)[0]
+    resources = []
+    for r in e.resources.all():
+        serializer = ResourceSerializer(r)
+        resources.append(serializer.data)
+    # TODO: add example metadata to the result
+    result = {'resources': resources}
+    return Response(result)

@@ -8,6 +8,13 @@ To setup, do this:
 ```sh
 virtualenv env
 pip install -r REQUIREMENTS.txt
+ ./manage.py makemigrations
+ ./manage.py migrate
+```
+
+To enter some examples in the database, do this:
+```sh
+./manage.py fill_examples --dir=resources/example/a
 ```
 
 To launch the server, do this:
