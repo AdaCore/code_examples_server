@@ -63,12 +63,17 @@ def examples(request):
 @api_view(['GET'])
 def example(request, name):
     # TODO: create an example serializer
-    # TODO: catch case where the example does not exist
-    e = Example.objects.filter(name=name)[0]
+    matches = Example.objects.filter(name=name)
+    if not matches:
+        return Response()
+
+    e = matches[0]
     resources = []
     for r in e.resources.all():
         serializer = ResourceSerializer(r)
         resources.append(serializer.data)
-    # TODO: add example metadata to the result
-    result = {'resources': resources}
+
+    result = {'name': e.name,
+              'description': e.description,
+              'resources': resources}
     return Response(result)

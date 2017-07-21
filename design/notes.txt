@@ -13,4 +13,4 @@ Add  -u <login>:<password> when using authentication
 curl -H 'Accept: application/json; indent=4' http://127.0.0.1:8000/check_program/ --data "{\"program\": \"hello\"}" --header "Content-Type:application/json"
 
 # get the examples
- curl -H 'Accept: application/json; indent=4' http://127.0.0.1:8000/examples/ --header "Content-Type:application/json"
+curl -H 'Accept: application/json; indent=4' http://127.0.0.1:8000/examples/ --header "Content-Type:application/json"
