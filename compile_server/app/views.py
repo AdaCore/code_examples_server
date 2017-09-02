@@ -77,3 +77,9 @@ def example(request, name):
               'description': e.description,
               'resources': resources}
     return Response(result)
+
+
+def code_page(request, example_name):
+    # TODO: move to a separate file
+    context = {'example_name': example_name}
+    return render(request, 'code_page.html', context)

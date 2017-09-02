@@ -38,4 +38,10 @@ urlpatterns = [
 
     # Get the details on one example
     url(r'^example/([^\/]+)$', views.example),
+
+    # HTML urls
+
+    # Get the code viewer on one example
+    url(r'^code_page/([^\/]+)$', views.code_page),
+
 ]
