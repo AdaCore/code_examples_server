@@ -1,9 +1,12 @@
 project langserv is
 
-   for Languages use ("Python", "Text");
+   for Languages use ("Python", "Text", "HTML", "javascript", "css");
 
    package Naming is
       for Implementation_Suffix ("Text") use ".txt";
+      for Implementation_Suffix ("HTML") use ".txt";
+      for Implementation_Suffix ("javascript") use ".js";
+      for Implementation_Suffix ("css") use ".css";
    end Naming;
 
    for Source_Dirs use (--  The django base
@@ -17,7 +20,13 @@ project langserv is
                         "compile_server/app/management/commands",
 
                         -- Some design docs
-                        "design"
+                        "design",
+
+                        -- The static resources
+                        "compile_server/app/static/",
+
+                        -- The HTML templates
+                        "compile_server/app/templates/**"
                        );
 
 
