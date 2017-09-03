@@ -5,35 +5,58 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <title>Editor</title>
-  <style type="text/css" media="screen">
-    body {
-        overflow: hidden;
-    }
-    #editor {
-        margin: 0;
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-    }
-  </style>
+  <link rel="stylesheet" href="{% static "common.css" %}" />
 </head>
 <body>
 
-<pre id="editor">function foo(items) {
-    var i;
-    for (i = 0; i &lt; items.length; i++) {
-        alert("Ace Rocks " + items[i]);
-    }
-}</pre>
+<div id="editor_area">
+</div>
 
 <script src="{% static "ace-builds/src/ace.js" %}"  type="text/javascript" charset="utf-8"></script>
+<script src="{% static "jquery-3.2.1.min.js" %}"></script>
 
 <script>
-    var editor = ace.edit("editor");
-    editor.setTheme("ace/theme/twilight");
-    editor.session.setMode("ace/mode/javascript");
+   $( document ).ready(function() {
+
+   // request the examples
+   $.ajax({
+      url: "/example/{{ example_name }}",
+      data: {},
+      type: "GET",
+      dataType : "json",
+   })
+   .done(function( json ) {
+      // On success, create editors for each of the resources
+      json.resources.forEach(function(resource){
+          // a title
+          $( "<h1>" ).text(resource.basename).appendTo($("#editor_area"));
+
+          // a container for an ACE editor
+          $( '<div class="editor_container" id="' + resource.basename + '"></div>'
+           ).appendTo($("#editor_area"));
+
+          // ACE editors...
+          var editor = ace.edit(resource.basename);
+          editor.session.setMode("ace/mode/ada");
+
+          // ... and their contents
+          editor.insert(resource.contents);
+
+          // TODO: place the cursor at 1,1
+      })
+
+   })
+   .fail(function( xhr, status, errorThrown ) {
+     //
+     alert( "could not download the example" );
+     console.log( "Error: " + errorThrown );
+     console.log( "Status: " + status );
+     console.dir( xhr );
+   })
+   // Code to run regardless of success or failure;
+   // commented for now - just so I remember how it's done
+   // .always(function( xhr, status ) {});
+  });
 </script>
 
 </body>
