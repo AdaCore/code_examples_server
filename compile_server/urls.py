@@ -25,7 +25,6 @@ router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
 
 urlpatterns = [
-    url(r'^', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls',
                                namespace='rest_framework')),
     url(r'^admin/', admin.site.urls),
@@ -44,4 +43,9 @@ urlpatterns = [
     # Get the code viewer on one example
     url(r'^code_page/([^\/]+)$', views.code_page),
 
+    # Get a list of all the examples
+    url(r'^examples_list/', views.examples_list),
+
+    # The landing page
+    url(r'', views.examples_list),
 ]

@@ -92,7 +92,6 @@ function fill_editor(container, example_name) {
       check_button = $('<button type="button" class="btn btn-primary">').text("Check").appendTo(toolbar)
       check_button.editors = editors
       check_button.on('click', function (x){
-         alert(check_button.editors[1].filename)
       })
    })
    .fail(function( xhr, status, errorThrown ) {

@@ -80,6 +80,9 @@ def example(request, name):
 
 
 def code_page(request, example_name):
-    # TODO: move to a separate file
     context = {'example_name': example_name}
     return render(request, 'code_page.html', context)
+
+def examples_list(request):
+    context = {'examples': Example.objects.all}
+    return render(request, 'examples_list.html', context)

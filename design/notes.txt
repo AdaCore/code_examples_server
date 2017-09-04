@@ -16,7 +16,6 @@ Backend
 
 * cleanup the status of imported/invisible files (exclude yaml, project)
 * implement the "check" button
-* implement a page which lists all the examples
 
 Production
 
