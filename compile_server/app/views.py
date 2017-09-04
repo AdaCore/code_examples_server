@@ -13,9 +13,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from compile_server.app.serializers import (UserSerializer,
                                             GroupSerializer,
-                                            ProgramSerializer)
+                                            ResourceSerializer)
 
-from compile_server.app.models import Program
+from compile_server.app.models import Resource, Example
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -34,10 +34,10 @@ class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
 
 
-class ProgramSet(viewsets.ModelViewSet):
+class ResourceSet(viewsets.ModelViewSet):
     """View/Edit"""
-    queryset = Program.objects.all()
-    serializer_class = ProgramSerializer
+    queryset = Resource.objects.all()
+    serializer_class = ResourceSerializer
 
 
 @api_view(['POST'])
@@ -51,9 +51,35 @@ def check_program(request):
 
 @api_view(['GET'])
 def examples(request):
-    return Response()
+    """Return a list of example names and their description"""
+    examples = Example.objects.all()
+    results = []
+    for e in examples:
+        results.append({'name': e.name, 'description': e.description})
+
+    return Response(results)
 
 
 @api_view(['GET'])
 def example(request, name):
-    return Response()
+    # TODO: create an example serializer
+    matches = Example.objects.filter(name=name)
+    if not matches:
+        return Response()
+
+    e = matches[0]
+    resources = []
+    for r in e.resources.all():
+        serializer = ResourceSerializer(r)
+        resources.append(serializer.data)
+
+    result = {'name': e.name,
+              'description': e.description,
+              'resources': resources}
+    return Response(result)
+
+
+def code_page(request, example_name):
+    # TODO: move to a separate file
+    context = {'example_name': example_name}
+    return render(request, 'code_page.html', context)

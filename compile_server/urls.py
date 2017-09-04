@@ -23,7 +23,6 @@ from compile_server.app import views
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
-router.register(r'programs', views.ProgramSet)
 
 urlpatterns = [
     url(r'^', include(router.urls)),
@@ -34,11 +33,15 @@ urlpatterns = [
     # Check one program
     url(r'^check_program/', views.check_program),
 
-    url(r'^examples/', views.examples),
-
     # Get a list of the examples
     url(r'^examples/', views.examples),
 
     # Get the details on one example
-    url(r'^example/([^/])+', views.example),
+    url(r'^example/([^\/]+)$', views.example),
+
+    # HTML urls
+
+    # Get the code viewer on one example
+    url(r'^code_page/([^\/]+)$', views.code_page),
+
 ]

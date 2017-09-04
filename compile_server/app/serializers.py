@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
-from compile_server.app.models import Program
+from compile_server.app.models import Resource
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -15,17 +15,19 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('url', 'name')
 
 
-class ProgramSerializer(serializers.Serializer):
+class ResourceSerializer(serializers.Serializer):
     class Meta:
-        model = Program
-        fields = ('code')
+        model = Resource
+        fields = ('basename', 'code')
 
-    code = serializers.CharField(style={'base_template': 'textarea.html'})
+    contents = serializers.CharField(style={'base_template': 'textarea.html'})
+    basename = serializers.CharField(style={'base_template': 'textarea.html'})
 
     def create(self, validated_data):
         return Snippet.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
-        instance.code = validated_data.get('code', instance.code)
-        instance.save()  # do we actually want to save programs?
+        instance.contents = validated_data.get('contents', instance.contents)
+        instance.basename = validated_data.get('basename', instance.basename)
+        instance.save()
         return instance

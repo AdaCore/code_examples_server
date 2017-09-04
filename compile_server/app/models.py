@@ -6,13 +6,6 @@ from django.db import models
 # Create your models here.
 
 
-class Program(models.Model):
-    """That's a program for ya!"""
-
-    # The code
-    code = models.TextField()
-
-
 class ToolOutput(models.Model):
     """The result on running a tool on a program"""
 
@@ -28,9 +21,9 @@ class Resource(models.Model):
     """
 
     # Base name of the resource
-    name = models.TextField()
+    basename = models.TextField()
 
-    # The contents of the resource
+    # The contents of the resource if it is a file
     contents = models.TextField()
 
     # TODO: if necessary (not sure it is) we can add
@@ -46,3 +39,6 @@ class Example(models.Model):
 
     # A description
     description = models.TextField()
+
+    # An example is a contains a set of resources
+    resources = models.ManyToManyField(Resource)

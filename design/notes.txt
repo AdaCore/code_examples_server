@@ -1,5 +1,37 @@
 Notes just for myself
 
-# Command to use curl to check a program
-# Add  -u <login>:<password> when using authentication
+# launch a shell
+./manage.py shell
+
+########
+# Todo #
+########
+
+Frontend
+
+* fix selection after clicking the "reset" button
+* nicer display when an example was not found
+* grab the bits that are currently served by CDNs
+
+Backend
+
+* cleanup the status of imported/invisible files (exclude yaml, project)
+* implement the "check" button
+* implement a page which lists all the examples
+
+Production
+
+* integrate Yannick's examples
+* run a server at AdaCore
+
+#################
+# Curl commands #
+#################
+
+Add  -u <login>:<password> when using authentication
+
+# check a program
 curl -H 'Accept: application/json; indent=4' http://127.0.0.1:8000/check_program/ --data "{\"program\": \"hello\"}" --header "Content-Type:application/json"
+
+# get the examples
+curl -H 'Accept: application/json; indent=4' http://127.0.0.1:8000/examples/ --header "Content-Type:application/json"
