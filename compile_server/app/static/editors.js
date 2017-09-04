@@ -62,11 +62,12 @@ function fill_editor(container, example_name) {
 
 
           // ACE editors...
-          var editor = ace.edit(resource.basename + the_id + '_editor');
+          var editor = ace.edit(resource.basename + the_id + '_editor')
           editor.session.setMode("ace/mode/ada");
 
           // ... and their contents
-          editor.insert(resource.contents);
+          editor.insert(resource.contents)
+          editor.initial_contents = resource.contents
           editor.filename = resource.basename
 
           // TODO: place the cursor at 1,1
@@ -75,11 +76,21 @@ function fill_editor(container, example_name) {
           editors.push(editor)
       })
 
-      button = $('<button type="button" class="btn btn-primary">').text("Check").appendTo(content)
-      button.name = "hello"
-      button.editors = editors
-      button.on('click', function (x){
-         alert(button.editors[1].filename)
+      var toolbar = $('<div class="btn-toolbar">')
+      toolbar.appendTo(container)
+
+      reset_button = $('<button type="button" class="btn btn-secondary">').text("Reset").appendTo(toolbar)
+      reset_button.editors = editors
+      reset_button.on('click', function (x){
+          reset_button.editors.forEach(function (x){
+             x.setValue(x.initial_contents)
+          })
+      })
+
+      check_button = $('<button type="button" class="btn btn-primary">').text("Check").appendTo(toolbar)
+      check_button.editors = editors
+      check_button.on('click', function (x){
+         alert(check_button.editors[1].filename)
       })
    })
    .fail(function( xhr, status, errorThrown ) {
