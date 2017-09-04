@@ -9,7 +9,6 @@ Notes just for myself
 
 Frontend
 
-* fix selection after clicking the "reset" button
 * nicer display when an example was not found
 * grab the bits that are currently served by CDNs
 

@@ -66,7 +66,8 @@ function fill_editor(container, example_name) {
           editor.session.setMode("ace/mode/ada");
 
           // ... and their contents
-          editor.insert(resource.contents)
+          editor.setValue(resource.contents)
+          editor.gotoLine(1)
           editor.initial_contents = resource.contents
           editor.filename = resource.basename
 
@@ -84,6 +85,7 @@ function fill_editor(container, example_name) {
       reset_button.on('click', function (x){
           reset_button.editors.forEach(function (x){
              x.setValue(x.initial_contents)
+             x.gotoLine(1)
           })
       })
 
