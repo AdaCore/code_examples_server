@@ -10,97 +10,16 @@
 </head>
 <body>
 
-<div id="editor_area" class="container">
+<div example_editor="{{ example_name }}">
 </div>
 
 <script src="{% static "ace-builds/src/ace.js" %}"  type="text/javascript" charset="utf-8"></script>
 <script src="{% static "jquery-3.2.1.min.js" %}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="{% static "editors.js" %}"></script>
 
 <script>
-   $( document ).ready(function() {
-
-   // request the examples
-   $.ajax({
-      url: "/example/{{ example_name }}",
-      data: {},
-      type: "GET",
-      dataType : "json",
-   })
-   .done(function( json ) {
-      // On success, create editors for each of the resources
-
-      // First create the tabs
-
-      var ul = $( '<ul class="nav nav-tabs" role="tablist">' )
-      ul.appendTo($("#editor_area"));
-
-      var counter = 0;
-
-      json.resources.forEach(function(resource){
-          counter++;
-          var li = $( '<li role="presentation" class="'
-           + (counter == 1 ? 'active' : '')
-           + '">' ).appendTo(ul);
-          $('<a href="#tab_' + counter  + '" aria-controls="tab_'
-            + counter + '" '
-            + 'id="tab_' + counter + '-tab"'
-            + 'role="tab" data-toggle="tab">'
-            + resource.basename + '</a>').appendTo(li)
-      })
-
-      // Then fill the contents of the tabs
-
-      var content = $( '<div class="tab-content">' )
-      content.appendTo($("#editor_area"));
-
-      counter = 0;
-
-      var editors = []
-
-      json.resources.forEach(function(resource){
-          counter++;
-          var div = $('<div role="tabpanel" class="tab-pane'
-                      + (counter == 1 ? ' active' : '')
-                      + '" id="tab_' + counter + '">');
-          var editordiv = $('<div class="editor_container" id="' + resource.basename + '_editor">');
-          editordiv.appendTo(div)
-          div.appendTo(content);
-
-
-          // ACE editors...
-          var editor = ace.edit(resource.basename + '_editor');
-          editor.session.setMode("ace/mode/ada");
-
-          // ... and their contents
-          editor.insert(resource.contents);
-          editor.filename = resource.basename
-
-          // TODO: place the cursor at 1,1
-
-          // Append the editor to the list of editors
-          editors.push(editor)
-      })
-
-      button = $('<button type="button" class="btn btn-primary">').text("Check").appendTo(content)
-      button.name = "hello"
-      button.editors = editors
-      button.on('click', function (x){
-         alert(button.editors[1].filename)
-      })
-   })
-   .fail(function( xhr, status, errorThrown ) {
-     //
-     alert( "could not download the example" );
-     console.log( "Error: " + errorThrown );
-     console.log( "Status: " + status );
-     console.dir( xhr );
-   })
-   // Code to run regardless of success or failure;
-   // commented for now - just so I remember how it's done
-   // .always(function( xhr, status ) {});
-  });
 </script>
 
 </body>
