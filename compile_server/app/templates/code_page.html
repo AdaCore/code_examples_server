@@ -31,6 +31,8 @@
    .done(function( json ) {
       // On success, create editors for each of the resources
 
+      // First create the tabs
+
       var ul = $( '<ul class="nav nav-tabs" role="tablist">' )
       ul.appendTo($("#editor_area"));
 
@@ -48,14 +50,17 @@
             + resource.basename + '</a>').appendTo(li)
       })
 
+      // Then fill the contents of the tabs
+
       var content = $( '<div class="tab-content">' )
       content.appendTo($("#editor_area"));
 
       counter = 0;
 
+      var editors = []
+
       json.resources.forEach(function(resource){
           counter++;
-          // a title
           var div = $('<div role="tabpanel" class="tab-pane'
                       + (counter == 1 ? ' active' : '')
                       + '" id="tab_' + counter + '">');
@@ -63,10 +68,6 @@
           editordiv.appendTo(div)
           div.appendTo(content);
 
-           $('#' + "tab_" + counter + "-tab" + ' a').click(function (e) {
-             e.preventDefault()
-             $(this).tab('show')
-           })
 
           // ACE editors...
           var editor = ace.edit(resource.basename + '_editor');
@@ -74,8 +75,19 @@
 
           // ... and their contents
           editor.insert(resource.contents);
+          editor.filename = resource.basename
 
           // TODO: place the cursor at 1,1
+
+          // Append the editor to the list of editors
+          editors.push(editor)
+      })
+
+      button = $('<button type="button" class="btn btn-primary">').text("Check").appendTo(content)
+      button.name = "hello"
+      button.editors = editors
+      button.on('click', function (x){
+         alert(button.editors[1].filename)
       })
    })
    .fail(function( xhr, status, errorThrown ) {
