@@ -18,7 +18,7 @@ from django.contrib import admin
 
 from rest_framework import routers
 
-from compile_server.app import views
+from compile_server.app import views, checker
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
@@ -30,7 +30,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
 
     # Check one program
-    url(r'^check_program/', views.check_program),
+    url(r'^check_program/', checker.check_program),
 
     # Get a list of the examples
     url(r'^examples/', views.examples),

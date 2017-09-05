@@ -40,15 +40,6 @@ class ResourceSet(viewsets.ModelViewSet):
     serializer_class = ResourceSerializer
 
 
-@api_view(['POST'])
-def check_program(request):
-    received_json = json.loads(request.body)
-    p = Program(code=received_json['program'])
-    serializer = ProgramSerializer(p)
-
-    return Response(serializer.data)
-
-
 @api_view(['GET'])
 def examples(request):
     """Return a list of example names and their description"""

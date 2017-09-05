@@ -1,3 +1,35 @@
+function query_check_result(editors, container) {
+
+   files = []
+
+   editors.forEach(function(e){
+       files.push({'basename': e.basename,
+                   'contents': e.getValue()})
+   })
+
+   data = {"files": files}
+
+   // request the examples
+   $.ajax({
+      url: "/check_program/",
+      data: JSON.stringify(data),
+      type: "POST",
+      dataType : "json",
+      contentType: 'application/json; charset=UTF-8',
+   })
+   .done(function( json ) {
+      alert(json)
+   })
+   .fail(function( xhr, status, errorThrown ) {
+     //
+     alert( "could not run the example" );
+     console.log( "Error: " + errorThrown );
+     console.log( "Status: " + status );
+     console.dir( xhr );
+   })
+}
+
+
 // Fills a <div> with an editable representation of an example.
 //    container: the <div> in question
 //    example_name: the name of the example to load
@@ -69,7 +101,7 @@ function fill_editor(container, example_name) {
           editor.setValue(resource.contents)
           editor.gotoLine(1)
           editor.initial_contents = resource.contents
-          editor.filename = resource.basename
+          editor.basename = resource.basename
 
           // TODO: place the cursor at 1,1
 
@@ -92,6 +124,7 @@ function fill_editor(container, example_name) {
       check_button = $('<button type="button" class="btn btn-primary">').text("Check").appendTo(toolbar)
       check_button.editors = editors
       check_button.on('click', function (x){
+          query_check_result(check_button.editors, container)
       })
    })
    .fail(function( xhr, status, errorThrown ) {
