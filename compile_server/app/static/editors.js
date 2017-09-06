@@ -9,6 +9,8 @@ function process_check_output(editors, output_area, output, status, message){
    // Clear the output area
    output_area.empty()
 
+   var found_error_message = false;
+
    // Process the lines
    output.forEach(function (l){
       // Look for lines that contain an error message
@@ -21,6 +23,8 @@ function process_check_output(editors, output_area, output, status, message){
       div.appendTo(output_area)
 
       if (match_found != null){
+         found_error_message = true;
+
          // Lines that contain a sloc are clickable:
          div.on('click', function(x){
             // find the corresponding editor
@@ -32,7 +36,10 @@ function process_check_output(editors, output_area, output, status, message){
 
                   // Jump to the corresponding line
                   e.gotoLine(parseInt(match_found[2]),
-                             parseInt(match_found[3]), true)
+                             // looks like column numbers are indexed from 0
+                             parseInt(match_found[3] - 1),
+                             true)
+                  e.focus()
                }
             })
          })
@@ -40,7 +47,7 @@ function process_check_output(editors, output_area, output, status, message){
     })
 
     // Congratulations!
-    if (status == 0){
+    if (!found_error_message){
       var div = $('<div class="output_success">')
       div.text("Success!")
       div.appendTo(output_area)
