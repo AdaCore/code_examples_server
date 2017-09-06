@@ -67,6 +67,7 @@ class Command(BaseCommand):
                         resources.append(r)
 
             e = Example(description=metadata['description'],
+                        original_dir=d,
                         name=metadata['name'])
             e.save()
             e.resources.add(*resources)

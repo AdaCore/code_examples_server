@@ -40,5 +40,8 @@ class Example(models.Model):
     # A description
     description = models.TextField()
 
+    # The directory which contains the original contents
+    original_dir = models.TextField()
+
     # An example is a contains a set of resources
     resources = models.ManyToManyField(Resource)

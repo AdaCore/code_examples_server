@@ -33,3 +33,17 @@ curl -H 'Accept: application/json; indent=4' http://127.0.0.1:8000/check_program
 
 # get the examples
 curl -H 'Accept: application/json; indent=4' http://127.0.0.1:8000/examples/ --header "Content-Type:application/json"
+
+#############################
+# Import Yannick's examples #
+#############################
+
+# TODO: add a facility to do this
+
+# Setup:
+cd resources ; git clone https:AdaCore/Compile_And_Prove_Demo.git
+
+# Import:
+./manage.py fill_examples --remove_all
+list="hello_world absolute_value bitwise_swap saturate_angle sensor_average strings communications landing_procedure"
+for a in $list; do ./manage.py fill_examples --dir=resources/Compile_And_Prove_Demo/examples/$a ; done

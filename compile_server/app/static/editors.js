@@ -1,4 +1,5 @@
-function query_check_result(editors, container) {
+// Launch a check on the given example editor
+function query_check_result(example_name, editors, container) {
 
    files = []
 
@@ -7,7 +8,8 @@ function query_check_result(editors, container) {
                    'contents': e.getValue()})
    })
 
-   data = {"files": files}
+   data = {"example_name": example_name,
+           "files": files}
 
    // request the examples
    $.ajax({
@@ -124,7 +126,7 @@ function fill_editor(container, example_name) {
       check_button = $('<button type="button" class="btn btn-primary">').text("Check").appendTo(toolbar)
       check_button.editors = editors
       check_button.on('click', function (x){
-          query_check_result(check_button.editors, container)
+         query_check_result(example_name, check_button.editors, container)
       })
    })
    .fail(function( xhr, status, errorThrown ) {

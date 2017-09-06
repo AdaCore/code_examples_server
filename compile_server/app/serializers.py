@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
-from compile_server.app.models import Resource
+from compile_server.app.models import Resource, Example
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -31,3 +31,9 @@ class ResourceSerializer(serializers.Serializer):
         instance.basename = validated_data.get('basename', instance.basename)
         instance.save()
         return instance
+
+
+class ExampleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Example
+        fields = ('name', 'description')

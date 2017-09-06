@@ -1,7 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
 
- <h3>{{ example_name }}</h3>
- <div example_editor="{{ example_name }}"></div>
+ <h3>{{ example.name }}</h3>
+ {{ example.description }}
+ <p></p>
+ <div example_editor="{{ example.name }}"></div>
 
 {% endblock%}
