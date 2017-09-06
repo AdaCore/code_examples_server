@@ -3,3 +3,25 @@ div.editor_container{
    border: 1px solid #ddd;
    border-top: 0px;
 }
+
+div.output_line{
+   color: #666;
+   padding-left:3px;
+   padding-right:3px;
+}
+
+div.output_msg{
+   color: #944;
+   padding-left:3px;
+   padding-right:3px;
+}
+
+div.output_msg:hover{
+   background-color:#fdd;
+}
+
+div.output_success{
+   color: #494;
+   padding-left:3px;
+   padding-right:3px;
+}
