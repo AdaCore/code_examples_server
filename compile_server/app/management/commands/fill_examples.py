@@ -7,6 +7,9 @@ from django.core.management.base import BaseCommand
 
 from compile_server.app.models import Resource, Example
 
+included_extensions = ['.ads', '.adb']
+# The extensions for the files that we want to show in the examples
+
 
 class Command(BaseCommand):
 
@@ -26,7 +29,7 @@ class Command(BaseCommand):
             Example.objects.all().delete()
 
         if options.get('dir', None):
-            d = options.get('dir')[0]
+            d = os.path.abspath(options.get('dir')[0])
 
             # For now, consider all files in the directory to be part of the
             # example
@@ -56,13 +59,15 @@ class Command(BaseCommand):
 
             resources = []
             for file in glob.glob(os.path.join(d, '*')):
-                with open(file, 'rB') as f:
-                    r = Resource(basename=os.path.basename(file),
-                                 contents=f.read())
-                    r.save()
-                    resources.append(r)
+                if any([file.endswith(ext) for ext in included_extensions]):
+                    with open(file, 'rB') as f:
+                        r = Resource(basename=os.path.basename(file),
+                                     contents=f.read())
+                        r.save()
+                        resources.append(r)
 
             e = Example(description=metadata['description'],
+                        original_dir=d,
                         name=metadata['name'])
             e.save()
             e.resources.add(*resources)

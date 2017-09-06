@@ -13,7 +13,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from compile_server.app.serializers import (UserSerializer,
                                             GroupSerializer,
-                                            ResourceSerializer)
+                                            ResourceSerializer,
+                                            ExampleSerializer)
 
 from compile_server.app.models import Resource, Example
 
@@ -38,15 +39,6 @@ class ResourceSet(viewsets.ModelViewSet):
     """View/Edit"""
     queryset = Resource.objects.all()
     serializer_class = ResourceSerializer
-
-
-@api_view(['POST'])
-def check_program(request):
-    received_json = json.loads(request.body)
-    p = Program(code=received_json['program'])
-    serializer = ProgramSerializer(p)
-
-    return Response(serializer.data)
 
 
 @api_view(['GET'])
@@ -80,6 +72,16 @@ def example(request, name):
 
 
 def code_page(request, example_name):
-    # TODO: move to a separate file
-    context = {'example_name': example_name}
+    matches = Example.objects.filter(name=example_name)
+    if not matches:
+        return Response()
+
+    e = matches[0]
+    serializer = ExampleSerializer(e)
+    context = {'example': serializer.data}
     return render(request, 'code_page.html', context)
+
+
+def examples_list(request):
+    context = {'examples': Example.objects.all}
+    return render(request, 'examples_list.html', context)

@@ -1,3 +1,37 @@
+// Launch a check on the given example editor
+function query_check_result(example_name, editors, container) {
+
+   files = []
+
+   editors.forEach(function(e){
+       files.push({'basename': e.basename,
+                   'contents': e.getValue()})
+   })
+
+   data = {"example_name": example_name,
+           "files": files}
+
+   // request the examples
+   $.ajax({
+      url: "/check_program/",
+      data: JSON.stringify(data),
+      type: "POST",
+      dataType : "json",
+      contentType: 'application/json; charset=UTF-8',
+   })
+   .done(function( json ) {
+      alert(json)
+   })
+   .fail(function( xhr, status, errorThrown ) {
+     //
+     alert( "could not run the example" );
+     console.log( "Error: " + errorThrown );
+     console.log( "Status: " + status );
+     console.dir( xhr );
+   })
+}
+
+
 // Fills a <div> with an editable representation of an example.
 //    container: the <div> in question
 //    example_name: the name of the example to load
@@ -66,9 +100,10 @@ function fill_editor(container, example_name) {
           editor.session.setMode("ace/mode/ada");
 
           // ... and their contents
-          editor.insert(resource.contents)
+          editor.setValue(resource.contents)
+          editor.gotoLine(1)
           editor.initial_contents = resource.contents
-          editor.filename = resource.basename
+          editor.basename = resource.basename
 
           // TODO: place the cursor at 1,1
 
@@ -84,13 +119,14 @@ function fill_editor(container, example_name) {
       reset_button.on('click', function (x){
           reset_button.editors.forEach(function (x){
              x.setValue(x.initial_contents)
+             x.gotoLine(1)
           })
       })
 
       check_button = $('<button type="button" class="btn btn-primary">').text("Check").appendTo(toolbar)
       check_button.editors = editors
       check_button.on('click', function (x){
-         alert(check_button.editors[1].filename)
+         query_check_result(example_name, check_button.editors, container)
       })
    })
    .fail(function( xhr, status, errorThrown ) {
