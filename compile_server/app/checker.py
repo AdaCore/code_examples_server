@@ -32,7 +32,7 @@ def check_program(request):
     # Sanity check for the existence of gnatprove
 
     if not check_gnatprove():
-        result = {'output': "gnatprove not found",
+        result = {'output_lines': ["gnatprove not found"],
                   'status': 0,
                   'message': "error"}
 
@@ -97,7 +97,5 @@ def check_program(request):
     result = {'output_lines': output_lines,
               'status': status,
               'message': message}
-
-    print result
 
     return Response(result)

@@ -47,7 +47,7 @@ function process_check_output(editors, output_area, output, status, message){
     })
 
     // Congratulations!
-    if (!found_error_message){
+    if (!found_error_message && message == "success"){
       var div = $('<div class="output_success">')
       div.text("Success!")
       div.appendTo(output_area)

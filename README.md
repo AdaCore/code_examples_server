@@ -13,7 +13,6 @@ source env/bin/activate
 pip install -r REQUIREMENTS.txt
 
 # This is to initialize the django database
- ./manage.py makemigrations
  ./manage.py migrate
 
 # This is to get the ACE editor
