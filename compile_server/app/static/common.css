@@ -25,3 +25,23 @@ div.output_info{
    padding-left:3px;
    padding-right:3px;
 }
+
+div.output_success{
+   color: #070;
+   padding-left:3px;
+   padding-right:3px;
+   font-weight:bold;
+}
+
+div.output_area{
+   font: 12px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+   margin-top: 10px;
+}
+
+div.output_row{
+}
+
+div.output_row button{
+   margin-right:4px;
+   margin-top:2px;
+}

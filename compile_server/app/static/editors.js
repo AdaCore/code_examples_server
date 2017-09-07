@@ -5,8 +5,6 @@
 //  message: any message coming back from the application
 //   TODO: make use of message
 function process_check_output(editors, output_area, output, status, completed, message){
-   var found_error_message = false;
-
    // Process the lines
    output.forEach(function (l){
       // Look for lines that contain an error message
@@ -19,7 +17,7 @@ function process_check_output(editors, output_area, output, status, completed, m
       div.appendTo(output_area)
 
       if (match_found != null){
-         found_error_message = true;
+         output_area.error_count++
 
          // Lines that contain a sloc are clickable:
          div.on('click', function(x){
@@ -43,10 +41,20 @@ function process_check_output(editors, output_area, output, status, completed, m
     })
 
     // Congratulations!
-    if (completed && status == 0){
-      var div = $('<div class="output_info">')
-      div.text("Done.")
-      div.appendTo(output_area)
+    if (completed){
+      if (output_area.error_count == 0) {
+         var div = $('<div class="output_success">')
+         div.text("Success!")
+         div.appendTo(output_area)
+      } else if (output_area.error_count == 1) {
+         var div = $('<div class="output_info">')
+         div.text("One error.")
+         div.appendTo(output_area)
+      } else {
+         var div = $('<div class="output_info">')
+         div.text(output_area.error_count + " errors.")
+         div.appendTo(output_area)
+      }
     }
 }
 
@@ -174,6 +182,7 @@ function fill_editor(container, example_name) {
 
           // ... and their contents
           editor.setValue(resource.contents)
+          editor.setShowPrintMargin(false)
           editor.gotoLine(1)
           editor.initial_contents = resource.contents
           editor.basename = resource.basename
@@ -185,12 +194,12 @@ function fill_editor(container, example_name) {
           editors.push(editor)
       })
 
-      var row = $('<div class="row">')
+      var row = $('<div class="row output_row">')
       row.appendTo(container)
 
       // create the buttons
 
-      var buttons_div = $('<div class="col-md-2">')
+      var buttons_div = $('<div class="col-md-3">')
       buttons_div.appendTo(row)
 
       reset_button = $('<button type="button" class="btn btn-secondary">'
@@ -202,7 +211,7 @@ function fill_editor(container, example_name) {
       check_button.editors = editors
       // Create the output area
 
-      var output_div = $('<div class="col-md-8">')
+      var output_div = $('<div class="col-md-9">')
       output_div.appendTo(row)
 
       var output_area = $('<div class="output_area">')
@@ -210,16 +219,18 @@ function fill_editor(container, example_name) {
 
       // Connect the buttons
       reset_button.on('click', function (x){
-          output_area.empty()
+         output_area.empty()
+         output_area.error_count = 0
 
-          reset_button.editors.forEach(function (x){
-             x.setValue(x.initial_contents)
-             x.gotoLine(1)
-          })
+         reset_button.editors.forEach(function (x){
+            x.setValue(x.initial_contents)
+            x.gotoLine(1)
+         })
       })
 
       check_button.on('click', function (x){
          output_area.empty()
+         output_area.error_count = 0
 
          var div = $('<div class="output_info">')
          div.text("Proving...")

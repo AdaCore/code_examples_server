@@ -104,7 +104,7 @@ def check_program(request):
     command = ["gnatprove", "-P", "main"]
 
     try:
-        p = process_handling.SeparateProcess(command, target)
+        p = process_handling.SeparateProcess([command], target)
         RUNNING_PROCESSES[identifier] = p
         message = "running gnatprove"
 
