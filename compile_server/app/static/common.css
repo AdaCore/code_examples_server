@@ -6,13 +6,13 @@ div.editor_container{
 
 div.output_line{
    color: #666;
-   padding-left:3px;
+   padding-left:15px;
    padding-right:3px;
 }
 
 div.output_msg{
    color: #944;
-   padding-left:3px;
+   padding-left:15px;
    padding-right:3px;
 }
 
@@ -20,8 +20,8 @@ div.output_msg:hover{
    background-color:#fdd;
 }
 
-div.output_success{
-   color: #494;
+div.output_info{
+   color: #222;
    padding-left:3px;
    padding-right:3px;
 }

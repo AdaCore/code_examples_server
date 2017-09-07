@@ -4,11 +4,7 @@
 //  status: the exit status
 //  message: any message coming back from the application
 //   TODO: make use of message
-function process_check_output(editors, output_area, output, status, message){
-
-   // Clear the output area
-   output_area.empty()
-
+function process_check_output(editors, output_area, output, status, completed, message){
    var found_error_message = false;
 
    // Process the lines
@@ -47,11 +43,34 @@ function process_check_output(editors, output_area, output, status, message){
     })
 
     // Congratulations!
-    if (!found_error_message && message == "success"){
-      var div = $('<div class="output_success">')
-      div.text("Success!")
+    if (completed && status == 0){
+      var div = $('<div class="output_info">')
+      div.text("Done.")
       div.appendTo(output_area)
     }
+}
+
+function get_output_from_identifier(editors, output_area, identifier) {
+   data = {"identifier": identifier}
+   $.ajax({
+      url: "/check_output/",
+      data: JSON.stringify(data),
+      type: "POST",
+      dataType : "json",
+      contentType: 'application/json; charset=UTF-8',
+   })
+   .done(function( json ) {
+      process_check_output(
+        editors, output_area,
+        json.output_lines, json.status, json.completed, json.message
+      )
+      if (!json.completed) {
+          // We have not finished processing the output: call this again
+          setTimeout(function(){
+              get_output_from_identifier(editors, output_area, identifier)
+          }, 250)
+      }
+   })
 }
 
 // Launch a check on the given example editor
@@ -76,8 +95,7 @@ function query_check_result(example_name, editors, output_area) {
       contentType: 'application/json; charset=UTF-8',
    })
    .done(function( json ) {
-      process_check_output(editors, output_area,
-         json.output_lines, json.status, json.message)
+      get_output_from_identifier(editors, output_area, json.identifier)
    })
    .fail(function( xhr, status, errorThrown ) {
      //
@@ -96,7 +114,6 @@ function query_check_result(example_name, editors, output_area) {
 var unique_id = 0
 
 function fill_editor(container, example_name) {
-
    unique_id++;
    container.attr("the_id", unique_id);
 
@@ -181,7 +198,7 @@ function fill_editor(container, example_name) {
       reset_button.editors = editors
 
       check_button = $('<button type="button" class="btn btn-primary">'
-         ).text("Check").appendTo(buttons_div)
+         ).text("Prove").appendTo(buttons_div)
       check_button.editors = editors
       // Create the output area
 
@@ -204,8 +221,9 @@ function fill_editor(container, example_name) {
       check_button.on('click', function (x){
          output_area.empty()
 
-         // TODO: animate this
-         $('<span>').text("Checking...").appendTo(output_area)
+         var div = $('<div class="output_info">')
+         div.text("Proving...")
+         div.appendTo(output_area)
          query_check_result(example_name, check_button.editors, output_area)
       })
 

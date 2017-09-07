@@ -32,6 +32,9 @@ urlpatterns = [
     # Check one program
     url(r'^check_program/', checker.check_program),
 
+    # Get the current running output of a given program
+    url(r'^check_output/', checker.check_output),
+
     # Get a list of the examples
     url(r'^examples/', views.examples),
 

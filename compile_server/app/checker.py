@@ -12,8 +12,12 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
 from compile_server.app.models import Resource, Example
+from compile_server.app import process_handling
 
 gnatprove_found = False
+
+RUNNING_PROCESSES = {}
+# The currently running processes (SeparateProcess) objects, indexed by ID
 
 
 def check_gnatprove():
@@ -27,13 +31,48 @@ def check_gnatprove():
 
 
 @api_view(['POST'])
+def check_output(request):
+    """Check the output of a running process."""
+    received_json = json.loads(request.body)
+    identifier = received_json['identifier']
+
+    if identifier not in RUNNING_PROCESSES:
+        # Pretend the process has finished
+        return Response({'output_lines': [],
+                         'status': 0,
+                         'completed': True,
+                         'message': "completed"})
+
+    p = RUNNING_PROCESSES[identifier]
+    lines = p.read_lines()
+
+    # Remove some noise from the gnatprove output
+    lines = [l.strip() for l in lines if not l.startswith("Summary logged")]
+
+    returncode = p.poll()
+    if returncode is None:
+        # The program is still running: transmit the current lines
+        return Response({'output_lines': lines,
+                         'status': 0,
+                         'completed': False,
+                         'message': "running"})
+
+    else:
+        # The program has finished
+        del(RUNNING_PROCESSES[identifier])
+        return Response({'output_lines': lines,
+                         'status': returncode,
+                         'completed': True,
+                         'message': "completed"})
+
+
+@api_view(['POST'])
 def check_program(request):
 
     # Sanity check for the existence of gnatprove
 
     if not check_gnatprove():
-        result = {'output_lines': ["gnatprove not found"],
-                  'status': 0,
+        result = {'identifier': '',
                   'message': "error"}
 
         return Response(result)
@@ -47,55 +86,33 @@ def check_program(request):
 
     e = matches[0]
 
-    output = ""
-    status = 0
-    message = "an error occurred while checking the program"
+    # Create a temporary directory
+    tempd = tempfile.mkdtemp()
+    identifier = os.path.basename(tempd)
+
+    # Copy the original resources in a sandbox directory
+    target = os.path.join(tempd, os.path.basename(e.original_dir))
+    shutil.copytree(e.original_dir, target)
+
+    # Overwrite with the user-contributed files
+    for file in received_json['files']:
+        with codecs.open(os.path.join(target, file['basename']),
+                         'w', 'utf-8') as f:
+            f.write(file['contents'])
+
+    # Run the command(s) to check the program
+    command = ["gnatprove", "-P", "main"]
 
     try:
-        # Create a temporary directory
-        tempd = tempfile.mkdtemp()
+        p = process_handling.SeparateProcess(command, target)
+        RUNNING_PROCESSES[identifier] = p
+        message = "running gnatprove"
 
-        # Copy the original resources in a sandbox directory
-        target = os.path.join(tempd, os.path.basename(e.original_dir))
-        shutil.copytree(e.original_dir, target)
+    except subprocess.CalledProcessError, exception:
+        message = exception.output
 
-        # Overwrite with the user-contributed files
-        for file in received_json['files']:
-            with codecs.open(os.path.join(target, file['basename']),
-                             'w', 'utf-8') as f:
-                f.write(file['contents'])
-
-        # TODO: find a command to just check rather than build
-        command = ["gnatprove", "-P", "main"]
-
-        # Run the command(s) to check the program
-        try:
-            output = subprocess.check_output(
-                command,
-                stderr=subprocess.STDOUT,
-                cwd=target)
-            message = "success"
-
-        except subprocess.CalledProcessError, exception:
-            output = exception.output
-            message = "error"
-            status = exception.returncode
-
-    finally:
-
-        # Cleanup
-        shutil.rmtree(tempd)
-
-    output_lines = []
-    for l in output.splitlines():
-        # Suppress some gnatprove output that's noise for this application
-        if not l.startswith("Summary logged"):
-            output_lines.append(l)
-
-    # Send the result back
-
-    result = {'output_lines': output_lines,
-              'status': status,
+    # Send the result
+    result = {'identifier': identifier,
               'message': message}
 
     return Response(result)
