@@ -73,7 +73,7 @@ def check_program(request):
 
     if not check_gnatprove():
         result = {'identifier': '',
-                  'message': "error"}
+                  'message': "gnatprove not found"}
 
         return Response(result)
 

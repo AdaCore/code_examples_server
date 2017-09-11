@@ -1,3 +1,10 @@
+// Log an error message in the output area
+function output_error(output_area, message){
+   var div = $('<div class="output_error">')
+   div.text(message)
+   div.appendTo(output_area)
+}
+
 // Process the result of a check
 //  editors: the editors to decorate
 //  output_area: the div where the messages should go
@@ -42,7 +49,9 @@ function process_check_output(editors, output_area, output, status, completed, m
 
     // Congratulations!
     if (completed){
-      if (output_area.error_count == 0) {
+      if ( status != 0 ) {
+         output_error(output_area, "exit status: " + status)
+      } else if (output_area.error_count == 0) {
          var div = $('<div class="output_success">')
          div.text("Success!")
          div.appendTo(output_area)
@@ -79,6 +88,15 @@ function get_output_from_identifier(editors, output_area, identifier) {
           }, 250)
       }
    })
+   .fail(function( xhr, status, errorThrown ) {
+     output_error(output_area, "could not download output")
+     console.log( "Error: " + errorThrown );
+     console.log( "Status: " + status );
+     console.dir( xhr );
+   })
+   .fail(function(json) {
+      output_error(output_area, json.message)
+   })
 }
 
 // Launch a check on the given example editor
@@ -103,7 +121,11 @@ function query_check_result(example_name, editors, output_area) {
       contentType: 'application/json; charset=UTF-8',
    })
    .done(function( json ) {
-      get_output_from_identifier(editors, output_area, json.identifier)
+      if (json.identifier == ""){
+         output_error(output_area, json.message)
+      } else {
+         get_output_from_identifier(editors, output_area, json.identifier)
+      }
    })
    .fail(function( xhr, status, errorThrown ) {
      //

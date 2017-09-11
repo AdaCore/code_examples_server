@@ -26,6 +26,12 @@ div.output_info{
    padding-right:3px;
 }
 
+div.output_error{
+   color: #822;
+   padding-left:3px;
+   padding-right:3px;
+}
+
 div.output_success{
    color: #070;
    padding-left:3px;
