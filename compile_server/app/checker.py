@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import glob
 import os
 import codecs
 import distutils.spawn
@@ -15,9 +16,6 @@ from compile_server.app.models import Resource, Example
 from compile_server.app import process_handling
 
 gnatprove_found = False
-
-RUNNING_PROCESSES = {}
-# The currently running processes (SeparateProcess) objects, indexed by ID
 
 
 def check_gnatprove():
@@ -36,15 +34,11 @@ def check_output(request):
     received_json = json.loads(request.body)
     identifier = received_json['identifier']
 
-    if identifier not in RUNNING_PROCESSES:
-        # Pretend the process has finished
-        return Response({'output_lines': [],
-                         'status': 0,
-                         'completed': True,
-                         'message': "completed"})
+    p = process_handling.ProcessReader(
+        os.path.join(tempfile.gettempdir(), identifier))
 
-    p = RUNNING_PROCESSES[identifier]
-    lines = p.read_lines()
+    print received_json['already_read']
+    lines = p.read_lines(received_json['already_read'])
 
     # Remove some noise from the gnatprove output
     lines = [l.strip() for l in lines if not l.startswith("Summary logged")]
@@ -58,8 +52,6 @@ def check_output(request):
                          'message': "running"})
 
     else:
-        # The program has finished
-        del(RUNNING_PROCESSES[identifier])
         return Response({'output_lines': lines,
                          'status': returncode,
                          'completed': True,
@@ -91,8 +83,9 @@ def check_program(request):
     identifier = os.path.basename(tempd)
 
     # Copy the original resources in a sandbox directory
-    target = os.path.join(tempd, os.path.basename(e.original_dir))
-    shutil.copytree(e.original_dir, target)
+    target = tempd
+    for g in glob.glob(os.path.join(e.original_dir, '*')):
+        shutil.copy(g, target)
 
     # Overwrite with the user-contributed files
     for file in received_json['files']:
@@ -105,7 +98,6 @@ def check_program(request):
 
     try:
         p = process_handling.SeparateProcess([command], target)
-        RUNNING_PROCESSES[identifier] = p
         message = "running gnatprove"
 
     except subprocess.CalledProcessError, exception:

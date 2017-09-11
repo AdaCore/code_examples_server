@@ -13,7 +13,12 @@ function output_error(output_area, message){
 //   TODO: make use of message
 function process_check_output(editors, output_area, output, status, completed, message){
    // Process the lines
+
+   read_lines = 0
+
    output.forEach(function (l){
+      read_lines++
+
       // Look for lines that contain an error message
       var match_found = l.match(/^([a-zA-Z._-]+):(\d+):(\d+):(.+)$/)
       var klass = match_found?"output_msg":"output_line"
@@ -65,10 +70,12 @@ function process_check_output(editors, output_area, output, status, completed, m
          div.appendTo(output_area)
       }
     }
+
+    return read_lines
 }
 
-function get_output_from_identifier(editors, output_area, identifier) {
-   data = {"identifier": identifier}
+function get_output_from_identifier(editors, output_area, identifier, already_read) {
+   data = {"identifier": identifier, "already_read": already_read}
    $.ajax({
       url: "/check_output/",
       data: JSON.stringify(data),
@@ -77,14 +84,14 @@ function get_output_from_identifier(editors, output_area, identifier) {
       contentType: 'application/json; charset=UTF-8',
    })
    .done(function( json ) {
-      process_check_output(
+      read_lines = process_check_output(
         editors, output_area,
         json.output_lines, json.status, json.completed, json.message
       )
       if (!json.completed) {
           // We have not finished processing the output: call this again
           setTimeout(function(){
-              get_output_from_identifier(editors, output_area, identifier)
+              get_output_from_identifier(editors, output_area, identifier, already_read + read_lines)
           }, 250)
       }
    })
@@ -124,7 +131,7 @@ function query_check_result(example_name, editors, output_area) {
       if (json.identifier == ""){
          output_error(output_area, json.message)
       } else {
-         get_output_from_identifier(editors, output_area, json.identifier)
+         get_output_from_identifier(editors, output_area, json.identifier, 0)
       }
    })
    .fail(function( xhr, status, errorThrown ) {
