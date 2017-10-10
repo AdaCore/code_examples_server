@@ -67,6 +67,7 @@ def example(request, name):
 
     result = {'name': e.name,
               'description': e.description,
+              'main': e.main,
               'resources': resources}
     return Response(result)
 

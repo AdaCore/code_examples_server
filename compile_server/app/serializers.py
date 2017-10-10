@@ -36,4 +36,4 @@ class ResourceSerializer(serializers.Serializer):
 class ExampleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Example
-        fields = ('name', 'description')
+        fields = ('name', 'description', 'main')

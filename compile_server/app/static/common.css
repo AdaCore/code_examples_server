@@ -42,6 +42,7 @@ div.output_success{
 div.output_area{
    font: 12px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
    margin-top: 10px;
+   white-space:pre;
 }
 
 div.output_row{

@@ -16,6 +16,12 @@ from compile_server.app.models import Resource, Example
 from compile_server.app import process_handling
 
 gnatprove_found = False
+gnatemulator_found = False
+
+ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE = False
+# TODO: right now, executables are run through gnatemulator. We have not
+# yet done the due diligence to sandbox this, though, so deactivating the
+# run feature through this boolean.
 
 
 def check_gnatprove():
@@ -26,6 +32,16 @@ def check_gnatprove():
         return True
     gnatprove_found = distutils.spawn.find_executable("gnatprove")
     return gnatprove_found
+
+
+def check_gnatemulator():
+    """Check that gnatemulator is found on the PATH"""
+    # Do the check once, for performance
+    global gnatemulator_found
+    if gnatemulator_found:
+        return True
+    gnatemulator_found = distutils.spawn.find_executable("arm-eabi-gnatemu")
+    return gnatemulator_found
 
 
 @api_view(['POST'])
@@ -58,53 +74,113 @@ def check_output(request):
                          'message': "completed"})
 
 
+def get_example(received_json):
+    """Return the example found in the received json, if any"""
+
+    matches = Example.objects.filter(name=received_json['example_name'])
+    if not matches:
+        return None
+    return matches[0]
+
+
+def prep_example_directory(example, received_json):
+    """Prepare the directory in which the example can be run.
+       Return the name of the directory created.
+    """
+    # Create a temporary directory
+    tempd = tempfile.mkdtemp()
+
+    # Copy the original resources in a sandbox directory
+    for g in glob.glob(os.path.join(example.original_dir, '*')):
+        if not os.path.isdir(g):
+            shutil.copy(g, tempd)
+
+    # Overwrite with the user-contributed files
+    for file in received_json['files']:
+        print "getting file" + str(file)
+        with codecs.open(os.path.join(tempd, file['basename']),
+                         'w', 'utf-8') as f:
+            f.write(file['contents'])
+
+    return tempd
+
+
 @api_view(['POST'])
 def check_program(request):
 
     # Sanity check for the existence of gnatprove
 
     if not check_gnatprove():
-        result = {'identifier': '',
-                  'message': "gnatprove not found"}
-
-        return Response(result)
+        return Response({'identifier': '', 'message': "gnatprove not found"})
 
     received_json = json.loads(request.body)
+    e = get_example(received_json)
+    if not e:
+        return Response({'identifier': '', 'message': "example not found"})
 
-    matches = Example.objects.filter(name=received_json['example_name'])
-
-    if not matches:
-        return Response()
-
-    e = matches[0]
-
-    # Create a temporary directory
-    tempd = tempfile.mkdtemp()
-    identifier = os.path.basename(tempd)
-
-    # Copy the original resources in a sandbox directory
-    target = tempd
-    for g in glob.glob(os.path.join(e.original_dir, '*')):
-        shutil.copy(g, target)
-
-    # Overwrite with the user-contributed files
-    for file in received_json['files']:
-        with codecs.open(os.path.join(target, file['basename']),
-                         'w', 'utf-8') as f:
-            f.write(file['contents'])
+    tempd = prep_example_directory(e, received_json)
 
     # Run the command(s) to check the program
     command = ["gnatprove", "-P", "main"]
 
     try:
-        p = process_handling.SeparateProcess([command], target)
+        p = process_handling.SeparateProcess([command], tempd)
         message = "running gnatprove"
 
     except subprocess.CalledProcessError, exception:
         message = exception.output
 
     # Send the result
-    result = {'identifier': identifier,
+    result = {'identifier': os.path.basename(tempd),
+              'message': message}
+
+    return Response(result)
+
+
+@api_view(['POST'])
+def run_program(request):
+
+    # Security check
+
+    if not ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE:
+        return Response(
+           {'identifier': '',
+            'message': "running programs is disabled on this server"}
+        )
+
+    # Sanity check for the existence of gnatprove
+
+    if not check_gnatemulator():
+        return Response({'identifier': '',
+                         'message': "gnatemulator not found"})
+
+    received_json = json.loads(request.body)
+    e = get_example(received_json)
+    received_json = json.loads(request.body)
+
+    if not e.main:
+        return Response({'identifier': '',
+                         'message': "example does not have a main"})
+
+    tempd = prep_example_directory(e, received_json)
+    if not tempd:
+        return Response({'identifier': '', 'message': "example not found"})
+
+    # Run the command(s) to check the program
+    commands = [
+                ["gprbuild", "-q", "-P", "main"],
+                ["arm-eabi-gnatemu", "-P", "main", e.main],
+               ]
+
+    try:
+        p = process_handling.SeparateProcess(commands, tempd)
+        message = "running gnatprove"
+
+    except subprocess.CalledProcessError, exception:
+        message = exception.output
+
+    # Send the result
+    result = {'identifier': os.path.basename(tempd),
               'message': message}
 
     return Response(result)

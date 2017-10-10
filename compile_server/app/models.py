@@ -43,5 +43,8 @@ class Example(models.Model):
     # The directory which contains the original contents
     original_dir = models.TextField()
 
+    # The name of the main
+    main = models.TextField()
+
     # An example is a contains a set of resources
     resources = models.ManyToManyField(Resource)

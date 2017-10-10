@@ -27,7 +27,7 @@ source env/bin/activate
 
 To enter some examples in the database, do this:
 ```sh
-./manage.py fill_examples --dir=resources/example/a
+./manage.py fill_examples --dir=resources/example/hello_world
 ```
 
 To launch the server, do this:

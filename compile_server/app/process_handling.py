@@ -13,8 +13,13 @@ import os
 import shutil
 import sys
 import subprocess
+import time
 from threading import Thread
 from Queue import Queue, Empty
+
+
+TIMEOUT_SECONDS = 30
+# Number of seconds to allow to a process
 
 
 class SeparateProcess(object):
@@ -33,16 +38,33 @@ class SeparateProcess(object):
         self.status_file = os.path.join(self.working_dir, 'status.txt')
         with open(self.status_file, 'wb') as f:
             f.write("")
-        self.p = None
+        self.p = None            # the current running process
+        self.time = time.time()  # the start time of the running process
+        self.processes_running = True
+
         t = Thread(target=self._enqueue_output)
         t.daemon = True
         t.start()
+
+        t2 = Thread(target=self._monitor_timeout)
+        t2.daemon = True
+        t2.start()
+
+    def _monitor_timeout(self):
+        """Monitor the running process, interrupting it if it takes too long"""
+
+        while not self.processes_running:
+            if time.time() - self.time > TIMEOUT_SECONDS:
+                # The current process took too long, kill it
+                self.p.kill()
+            time.sleep(1.0)
 
     def _enqueue_output(self):
         """The function that reads the output from the process"""
 
         # Launch each process in sequence, in the same task
         for cmd in self.cmd_lines:
+            self.time = time.time()
             self.p = subprocess.Popen(
                 cmd,
                 cwd=self.working_dir,
@@ -59,8 +81,6 @@ class SeparateProcess(object):
             # Write the return code
             self.p.poll()
             returncode = self.p.returncode
-            with open(self.status_file, 'wb') as f:
-                f.write(str(returncode))
 
             # Cleanup
             self.p.stdout.close()
@@ -68,6 +88,13 @@ class SeparateProcess(object):
             # If the process returned nonzero, do not run the next process
             if returncode != 0:
                 break
+
+        with open(self.status_file, 'wb') as f:
+            f.write(str(returncode))
+
+        # When we have finished running processes, the monitor task should
+        # stop
+        self.processes_running = False
 
 
 class ProcessReader(object):

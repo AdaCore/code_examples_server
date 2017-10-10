@@ -74,10 +74,10 @@ function process_check_output(editors, output_area, output, status, completed, m
     return read_lines
 }
 
-function get_output_from_identifier(editors, output_area, identifier, already_read) {
+function get_output_from_identifier(container, editors, output_area, identifier, already_read) {
    data = {"identifier": identifier, "already_read": already_read}
    $.ajax({
-      url: "/check_output/",
+      url: container.example_server + "/check_output/",
       data: JSON.stringify(data),
       type: "POST",
       dataType : "json",
@@ -91,7 +91,7 @@ function get_output_from_identifier(editors, output_area, identifier, already_re
       if (!json.completed) {
           // We have not finished processing the output: call this again
           setTimeout(function(){
-              get_output_from_identifier(editors, output_area, identifier, already_read + read_lines)
+              get_output_from_identifier(container, editors, output_area, identifier, already_read + read_lines)
           }, 250)
       }
    })
@@ -106,8 +106,9 @@ function get_output_from_identifier(editors, output_area, identifier, already_re
    })
 }
 
-// Launch a check on the given example editor
-function query_check_result(example_name, editors, output_area) {
+
+// Launch a run on the given example editor
+function query_operation_result(container, example_name, editors, output_area, operation_url) {
 
    files = []
 
@@ -121,7 +122,7 @@ function query_check_result(example_name, editors, output_area) {
 
    // request the examples
    $.ajax({
-      url: "/check_program/",
+      url: container.example_server + operation_url,
       data: JSON.stringify(data),
       type: "POST",
       dataType : "json",
@@ -131,7 +132,7 @@ function query_check_result(example_name, editors, output_area) {
       if (json.identifier == ""){
          output_error(output_area, json.message)
       } else {
-         get_output_from_identifier(editors, output_area, json.identifier, 0)
+         get_output_from_identifier(container, editors, output_area, json.identifier, 0)
       }
    })
    .fail(function( xhr, status, errorThrown ) {
@@ -143,20 +144,20 @@ function query_check_result(example_name, editors, output_area) {
    })
 }
 
-
 // Fills a <div> with an editable representation of an example.
 //    container: the <div> in question
 //    example_name: the name of the example to load
 
 var unique_id = 0
 
-function fill_editor(container, example_name) {
+function fill_editor(container, example_name, example_server) {
    unique_id++;
    container.attr("the_id", unique_id);
+   container.example_server = example_server;
 
    // request the examples
    $.ajax({
-      url: "/example/" + example_name,
+      url: container.example_server + "/example/" + example_name,
       data: {},
       type: "GET",
       dataType : "json",
@@ -240,6 +241,12 @@ function fill_editor(container, example_name) {
       check_button.editors = editors
       // Create the output area
 
+      if (json.main) {
+         run_button = $('<button type="button" class="btn btn-primary">'
+            ).text("Run").appendTo(buttons_div)
+         run_button.editors = editors
+      }
+
       var output_div = $('<div class="col-md-9">')
       output_div.appendTo(row)
 
@@ -264,10 +271,20 @@ function fill_editor(container, example_name) {
          var div = $('<div class="output_info">')
          div.text("Proving...")
          div.appendTo(output_area)
-         query_check_result(example_name, check_button.editors, output_area)
+         query_operation_result(container, example_name, check_button.editors, output_area, "/check_program/")
       })
 
+      if (json.main) {
+         run_button.on('click', function (x){
+            output_area.empty()
+            output_area.error_count = 0
 
+            var div = $('<div class="output_info">')
+            div.text("Running...")
+            div.appendTo(output_area)
+            query_operation_result(container, example_name, check_button.editors, output_area, "/run_program/")
+         })
+      }
    })
    .fail(function( xhr, status, errorThrown ) {
      //
@@ -289,8 +306,10 @@ $( document ).ready(function() {
    // attribute
    $( "div" ).each(function(index, element) {
        example_name = $( this ).attr("example_editor");
+       example_server = $( this ).attr("example_server");
+       if (!example_server) { example_server = ''}
        if (example_name) {
-           fill_editor($( this ), example_name);
+           fill_editor($( this ), example_name, example_server);
            }
        })
 
