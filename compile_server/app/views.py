@@ -41,6 +41,13 @@ class ResourceSet(viewsets.ModelViewSet):
     serializer_class = ResourceSerializer
 
 
+def CrossDomainResponse(data=None):
+    """Return a response which accepts cross-domain queries"""
+    r = Response(data)
+    r["Access-Control-Allow-Origin"] = "*"
+    return r
+
+
 @api_view(['GET'])
 def examples(request):
     """Return a list of example names and their description"""
@@ -49,7 +56,7 @@ def examples(request):
     for e in examples:
         results.append({'name': e.name, 'description': e.description})
 
-    return Response(results)
+    return CrossDomainResponse(results)
 
 
 @api_view(['GET'])
@@ -57,7 +64,7 @@ def example(request, name):
     # TODO: create an example serializer
     matches = Example.objects.filter(name=name)
     if not matches:
-        return Response()
+        return CrossDomainResponse()
 
     e = matches[0]
     resources = []
@@ -69,7 +76,7 @@ def example(request, name):
               'description': e.description,
               'main': e.main,
               'resources': resources}
-    return Response(result)
+    return CrossDomainResponse(result)
 
 
 def code_page(request, example_name):

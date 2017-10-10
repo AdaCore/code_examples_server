@@ -14,6 +14,7 @@ from rest_framework.decorators import api_view
 
 from compile_server.app.models import Resource, Example
 from compile_server.app import process_handling
+from compile_server.app.views import CrossDomainResponse
 
 gnatprove_found = False
 gnatemulator_found = False
@@ -62,16 +63,16 @@ def check_output(request):
     returncode = p.poll()
     if returncode is None:
         # The program is still running: transmit the current lines
-        return Response({'output_lines': lines,
-                         'status': 0,
-                         'completed': False,
-                         'message': "running"})
+        return CrossDomainResponse({'output_lines': lines,
+                                    'status': 0,
+                                    'completed': False,
+                                    'message': "running"})
 
     else:
-        return Response({'output_lines': lines,
-                         'status': returncode,
-                         'completed': True,
-                         'message': "completed"})
+        return CrossDomainResponse({'output_lines': lines,
+                                    'status': returncode,
+                                    'completed': True,
+                                    'message': "completed"})
 
 
 def get_example(received_json):
@@ -111,12 +112,14 @@ def check_program(request):
     # Sanity check for the existence of gnatprove
 
     if not check_gnatprove():
-        return Response({'identifier': '', 'message': "gnatprove not found"})
+        return CrossDomainResponse(
+            {'identifier': '', 'message': "gnatprove not found"})
 
     received_json = json.loads(request.body)
     e = get_example(received_json)
     if not e:
-        return Response({'identifier': '', 'message': "example not found"})
+        return CrossDomainResponse(
+            {'identifier': '', 'message': "example not found"})
 
     tempd = prep_example_directory(e, received_json)
 
@@ -134,7 +137,7 @@ def check_program(request):
     result = {'identifier': os.path.basename(tempd),
               'message': message}
 
-    return Response(result)
+    return CrossDomainResponse(result)
 
 
 @api_view(['POST'])
@@ -143,7 +146,7 @@ def run_program(request):
     # Security check
 
     if not ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE:
-        return Response(
+        return CrossDomainResponse(
            {'identifier': '',
             'message': "running programs is disabled on this server"}
         )
@@ -151,20 +154,22 @@ def run_program(request):
     # Sanity check for the existence of gnatprove
 
     if not check_gnatemulator():
-        return Response({'identifier': '',
-                         'message': "gnatemulator not found"})
+        return CrossDomainResponse({'identifier': '',
+                                    'message': "gnatemulator not found"})
 
     received_json = json.loads(request.body)
     e = get_example(received_json)
     received_json = json.loads(request.body)
 
     if not e.main:
-        return Response({'identifier': '',
-                         'message': "example does not have a main"})
+        return CrossDomainResponse(
+            {'identifier': '',
+             'message': "example does not have a main"})
 
     tempd = prep_example_directory(e, received_json)
     if not tempd:
-        return Response({'identifier': '', 'message': "example not found"})
+        return CrossDomainResponse(
+            {'identifier': '', 'message': "example not found"})
 
     # Run the command(s) to check the program
     commands = [
@@ -183,4 +188,4 @@ def run_program(request):
     result = {'identifier': os.path.basename(tempd),
               'message': message}
 
-    return Response(result)
+    return CrossDomainResponse(result)

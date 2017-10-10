@@ -160,7 +160,11 @@ function fill_editor(container, example_name, example_server) {
       url: container.example_server + "/example/" + example_name,
       data: {},
       type: "GET",
-      dataType : "json",
+      // dataType : "json",
+      contentType: 'text/plain',
+      crossDomain: true,
+//      headers: { "Origin": "http://www.adacore.com" }
+
    })
    .done(function( json ) {
       // On success, create editors for each of the resources
