@@ -25,8 +25,10 @@ SECRET_KEY = 'ci!nks6jg!qxsk2gc1hpdld=&kxqqqotm)(5$^ork&=o#t3+v$'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = []
 
+CORS_ORIGIN_ALLOW_ALL = True
+# Allow everyone to request data from this server
 
 # Application definition
 
@@ -39,10 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'corsheaders',
     'compile_server.app'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
