@@ -90,6 +90,17 @@ def code_page(request, example_name):
     return render(request, 'code_page.html', context)
 
 
+def code_embed(request, example_name):
+    matches = Example.objects.filter(name=example_name)
+    if not matches:
+        return Response()
+
+    e = matches[0]
+    serializer = ExampleSerializer(e)
+    context = {'example': serializer.data}
+    return render(request, 'code_embed.html', context)
+
+
 def examples_list(request):
     context = {'examples': Example.objects.all}
     return render(request, 'examples_list.html', context)

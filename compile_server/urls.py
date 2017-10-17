@@ -49,6 +49,9 @@ urlpatterns = [
     # Get the code viewer on one example
     url(r'^code_page/([^\/]+)$', views.code_page),
 
+    # Get the code viewer on one example
+    url(r'^code_embed/([^\/]+)$', views.code_embed),
+
     # Get a list of all the examples
     url(r'^examples_list/', views.examples_list),
 
