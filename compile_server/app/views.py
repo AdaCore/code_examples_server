@@ -8,6 +8,7 @@ from django.shortcuts import render
 # Create your views here.
 
 from django.contrib.auth.models import User, Group
+from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -90,6 +91,7 @@ def code_page(request, example_name):
     return render(request, 'code_page.html', context)
 
 
+@xframe_options_exempt
 def code_embed(request, example_name):
     matches = Example.objects.filter(name=example_name)
     if not matches:
