@@ -1,0 +1,22 @@
+project Main is
+
+   for Main use ("hello.adb");
+
+   package Compiler is
+      for Switches ("ada") use ("-g", "-gnatwa", "-gnatQ");
+   end Compiler;
+
+   package Builder is
+      for Switches ("ada") use ("-g", "-O0");
+      for Global_Compilation_Switches ("Ada") use 
+        ("-gnateT=/export/work/setton/src/ANCR/src/code_examples_server/resources/example/hello_world/tdf");
+   end Builder;
+
+   for Runtime ("Ada") use "ravenscar-sfp-stm32f4";
+   for Target use "arm-eabi";
+
+   package Emulator is
+      for Board use "STM32F4";
+   end Emulator;
+
+end Main;
