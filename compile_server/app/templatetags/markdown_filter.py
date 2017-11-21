@@ -5,4 +5,4 @@ register = template.Library()
 
 @register.filter
 def markdownify(text):
-    return markdown.markdown(text, safe_mode='escape')
+    return markdown.markdown(text)

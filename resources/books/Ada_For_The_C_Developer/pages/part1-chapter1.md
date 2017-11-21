@@ -12,6 +12,13 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
     
 ---
 
+### Test
+ This is a test of inserting code blocks in the markdown 
+ 
+ <div example_editor="Hello world runnable example"></div>
+ 
+---
+
 ## Lorem Ipsum Dolor
 Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
     aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
