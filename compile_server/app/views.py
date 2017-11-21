@@ -156,7 +156,7 @@ def book_router(request, book, part, chapter):
 
     content_page = os.path.join(book_path,
                                 "pages",
-                                "part%s-chapter%s.html" % (part, chapter))
+                                "part%s-chapter%s.md" % (part, chapter))
 
     if os.path.isfile(content_page):
         with open(content_page, 'r') as f:

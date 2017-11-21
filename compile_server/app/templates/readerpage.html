@@ -1,4 +1,7 @@
 {% extends 'book_base.html' %}
+
+{% load markdown_filter %}
+
 {% block sidebar %}
 <nav id="sidebar">
     <ul class="list-unstyled components">
@@ -54,6 +57,6 @@
         </div>
     </nav>
 
-    {{ content|safe }}
+    {{ content|markdownify|safe }}
 </div>
 {% endblock%}
