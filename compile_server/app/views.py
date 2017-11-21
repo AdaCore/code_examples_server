@@ -165,9 +165,12 @@ def book_router(request, book, part, chapter):
             with open(content_page, 'r') as f:
                 htmldata['content'] = f.read()
         else:
-            htmldata['content'] = "# Page Under Construction"
+            with open(os.path.join(resources_base_path,
+                                   "under-construction.md")) as f:
+                htmldata['content'] = f.read()
     else:
-        htmldata['content'] = "### The page you have reached is invalid. " \
-                              "Please use the links at the left to navigate to a valid page."
+        with open(os.path.join(resources_base_path,
+                               "invalid-page.md")) as f:
+            htmldata['content'] = f.read()
 
     return render(request, 'readerpage.html', htmldata)
