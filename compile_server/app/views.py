@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import json
-
 from django.shortcuts import render
 
 # Create your views here.
+
+import os
+import yaml
+
+from django.conf import settings
 
 from django.contrib.auth.models import User, Group
 from django.views.decorators.clickjacking import xframe_options_exempt
@@ -106,3 +109,59 @@ def code_embed(request, example_name):
 def examples_list(request):
     context = {'examples': Example.objects.all}
     return render(request, 'examples_list.html', context)
+
+
+def book_list(request):
+    resources_base_path = os.path.join(settings.RESOURCES_DIR, "books")
+
+    with open(os.path.join(resources_base_path, "book_list.yaml"), 'r') as f:
+        booklist = yaml.load(f)
+    return render(request, 'book_list.html', booklist)
+
+
+def book_router(request, book, part, chapter):
+    resources_base_path = os.path.join(settings.RESOURCES_DIR, "books")
+
+    book_path = os.path.join(resources_base_path, book)
+
+    if not os.path.isdir(book_path):
+        with open(os.path.join(resources_base_path, "book_list.yaml"), 'r') as f:
+            booklist = yaml.load(f)
+        return render(request, 'book_list.html', booklist)
+
+    path = os.path.join(book_path, "chapters.yaml")
+
+    with open(path, 'r') as f:
+        bookdata = yaml.load(f)
+
+    htmldata = bookdata
+    htmldata['sel_part'] = int(part)
+    htmldata['sel_chapter'] = int(chapter)
+
+    chapter_list = []
+
+    for p in bookdata['parts']:
+        chapter_list.extend(p['chapters'])
+
+    val_search = "part%s-chapter%s" % (part, chapter)
+
+    for i, ch in enumerate(chapter_list):
+        if ch['url'] == val_search:
+            htmldata['sel_topic'] = ch
+            if i != 0:
+                htmldata['prev_topic'] = chapter_list[i - 1]
+            if i != len(chapter_list) - 1:
+                htmldata['next_topic'] = chapter_list[i + 1]
+    # TODO: handle instance where part and chapter are outside of valid range
+
+    content_page = os.path.join(book_path,
+                                "pages",
+                                "part%s-chapter%s.html" % (part, chapter))
+
+    if os.path.isfile(content_page):
+        with open(content_page, 'r') as f:
+            htmldata['content'] = f.read()
+    else:
+        htmldata['content'] = "<h3>Page Under Construction</h3>"
+
+    return render(request, 'readerpage.html', htmldata)

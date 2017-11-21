@@ -55,6 +55,12 @@ urlpatterns = [
     # Get a list of all the examples
     url(r'^examples_list/', views.examples_list),
 
+    # URL router for Books
+    url(r'^books/(.+)/part(\d+)-chapter(\d+)', views.book_router),
+
+    # URL router for Book landing
+    url(r'^books', views.book_list),
+
     # The landing page
     url(r'', views.examples_list),
 ]
