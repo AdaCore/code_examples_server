@@ -145,23 +145,29 @@ def book_router(request, book, part, chapter):
 
     val_search = "part%s-chapter%s" % (part, chapter)
 
+    inrange = False
     for i, ch in enumerate(chapter_list):
         if ch['url'] == val_search:
+            inrange = True
             htmldata['sel_topic'] = ch
             if i != 0:
                 htmldata['prev_topic'] = chapter_list[i - 1]
             if i != len(chapter_list) - 1:
                 htmldata['next_topic'] = chapter_list[i + 1]
-    # TODO: handle instance where part and chapter are outside of valid range
+            break
 
-    content_page = os.path.join(book_path,
-                                "pages",
-                                "part%s-chapter%s.md" % (part, chapter))
+    if inrange:
+        content_page = os.path.join(book_path,
+                                    "pages",
+                                    "part%s-chapter%s.md" % (part, chapter))
 
-    if os.path.isfile(content_page):
-        with open(content_page, 'r') as f:
-            htmldata['content'] = f.read()
+        if os.path.isfile(content_page):
+            with open(content_page, 'r') as f:
+                htmldata['content'] = f.read()
+        else:
+            htmldata['content'] = "# Page Under Construction"
     else:
-        htmldata['content'] = "<h3>Page Under Construction</h3>"
+        htmldata['content'] = "### The page you have reached is invalid. " \
+                              "Please use the links at the left to navigate to a valid page."
 
     return render(request, 'readerpage.html', htmldata)
