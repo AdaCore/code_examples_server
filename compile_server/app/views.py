@@ -170,20 +170,27 @@ def book_router(request, book, part, chapter):
 
     # load page, if part or chapter is out of range go to unknown page link
     if inrange:
-        content_page = os.path.join(book_path,
+        mdcontent_page = os.path.join(book_path,
                                     "pages",
                                     "part%s-chapter%s.md" % (part, chapter))
+        rstcontent_page = os.path.join(book_path,
+                                      "pages",
+                                      "part%s-chapter%s.rst" % (part, chapter))
 
-        if os.path.isfile(content_page):
-            with open(content_page, 'r') as f:
-                htmldata['content'] = f.read()
+        # check for markdown version
+        if os.path.isfile(mdcontent_page):
+            with open(mdcontent_page, 'r') as f:
+                htmldata['mdcontent'] = f.read()
+        elif os.path.isfile(rstcontent_page):
+            with open(rstcontent_page, 'r') as f:
+                htmldata['rstcontent'] = f.read()
         else:
             with open(os.path.join(resources_base_path,
                                    "under-construction.md")) as f:
-                htmldata['content'] = f.read()
+                htmldata['mdcontent'] = f.read()
     else:
         with open(os.path.join(resources_base_path,
                                "invalid-page.md")) as f:
-            htmldata['content'] = f.read()
+            htmldata['mdcontent'] = f.read()
 
     return render(request, 'readerpage.html', htmldata)

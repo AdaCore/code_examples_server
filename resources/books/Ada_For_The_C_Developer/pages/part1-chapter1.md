@@ -1,5 +1,7 @@
 # So, what is this Ada thingy anyway?
 
+(This page is md)
+
 Since you are reading this, we will assume you are familiar with the ubiquitous programming language called C. Well, Ada is like C... except it has a fundamentally different approach to its design paradigms. To explain this further, let's look at the C99 Rationale document [1]. Specifically paragraph 15 labeled: **Keep the spirit of C**:
 
     * Trust the programmer.

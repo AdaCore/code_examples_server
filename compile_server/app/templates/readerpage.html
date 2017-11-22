@@ -1,6 +1,7 @@
 {% extends 'book_base.html' %}
 
 {% load markdown_filter %}
+{% load rst_filter %}
 
 {% block sidebar %}
 <nav id="sidebar">
@@ -61,6 +62,11 @@
         </div>
     </nav>
 
-    {{ content|markdownify|safe }}
+    {% if mdcontent %}
+        {{ mdcontent|markdownify|safe }}
+    {% elif rstcontent %}
+        {{ rstcontent|rstify|safe }}
+    {% endif %}
+
 </div>
 {% endblock%}
