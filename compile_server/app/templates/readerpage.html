@@ -1,0 +1,62 @@
+{% extends 'book_base.html' %}
+
+{% load markdown_filter %}
+
+{% block sidebar %}
+<nav id="sidebar">
+    <ul class="list-unstyled components">
+        {% for p in parts %}
+        {% if forloop.counter == sel_part %}
+        <li class="active">
+        {% else %}
+        <li>
+        {% endif %}
+            <a href="#partSubmenu{{ forloop.counter }}" data-toggle="collapse" aria-expanded="false">{{ p.title }}</a>
+            <ul class="collapse list-unstyled" id="partSubmenu{{ forloop.counter }}">
+                {% for c in p.chapters %}
+                {% if forloop.counter == sel_chapter %}
+                 <li class="active">
+                {% else %}
+                <li>
+                {% endif %}
+                    <a href="{{ c.url }}">{{ c.title }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endblock%}
+
+{% block reader %}
+
+<div id="content">
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+
+            <div class="navbar-header">
+                <button type="button" id="sidebarCollapse" class="btn btn-info navbar-btn">
+                    <i class="glyphicon glyphicon-align-left"></i>
+                    <span></span>
+                </button>
+                {{ sel_topic.title }}
+            </div>
+
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav navbar-right">
+                    {% if prev_topic %}
+                    <li><a href="{{ prev_topic.url }}">Prev - {{ prev_topic.title }}</a></li>
+                    {% endif %}
+                    {% if next_topic %}
+                    <li><a href="{{ next_topic.url }}">Next - {{ next_topic.title }}</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    {{ content|markdownify|safe }}
+</div>
+{% endblock%}

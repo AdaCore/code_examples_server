@@ -2,3 +2,4 @@ django
 djangorestframework
 django-cors-headers
 pyyaml
+markdown
