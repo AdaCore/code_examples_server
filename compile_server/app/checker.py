@@ -19,7 +19,7 @@ from compile_server.app.views import CrossDomainResponse
 gnatprove_found = False
 gnatemulator_found = False
 
-ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE = True
+ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE = False
 # TODO: right now, executables are run through gnatemulator. We have not
 # yet done the due diligence to sandbox this, though, so deactivating the
 # run feature through this boolean.
