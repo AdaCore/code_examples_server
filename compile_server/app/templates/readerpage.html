@@ -19,7 +19,7 @@
                 {% else %}
                 <li>
                 {% endif %}
-                    <a href="{{ c.url }}">{{ c.title }}</a>
+                    <a href="{{ HTTP_HOST }}/books/{{ book_url }}/{{ c.url }}">{{ c.title }}</a>
                 </li>
                 {% endfor %}
             </ul>
@@ -47,10 +47,10 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav navbar-right">
                     {% if prev_topic %}
-                    <li><a href="{{ prev_topic.url }}">Prev - {{ prev_topic.title }}</a></li>
+                    <li><a href="{{ HTTP_HOST }}/books/{{ book_url }}/{{ prev_topic.url }}">Prev - {{ prev_topic.title }}</a></li>
                     {% endif %}
                     {% if next_topic %}
-                    <li><a href="{{ next_topic.url }}">Next - {{ next_topic.title }}</a></li>
+                    <li><a href="{{ HTTP_HOST }}/books/{{ book_url }}/{{ next_topic.url }}">Next - {{ next_topic.title }}</a></li>
                     {% endif %}
                 </ul>
             </div>

@@ -15,7 +15,7 @@
         <br>
         <ul class="list-unstyled components">
             {% for b in books %}
-            <li><a href="books/{{ b.url }}/part1-chapter1">{{ b.title }}</a></li>
+            <li><a href="{{ HTTP_HOST }}/books/{{ b.url }}/part1-chapter1">{{ b.title }}</a></li>
             {% endfor %}
         </ul>
 

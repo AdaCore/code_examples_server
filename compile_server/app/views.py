@@ -135,6 +135,7 @@ def book_router(request, book, part, chapter):
         bookdata = yaml.load(f)
 
     htmldata = bookdata
+    htmldata['book_url'] = book
     htmldata['sel_part'] = int(part)
     htmldata['sel_chapter'] = int(chapter)
 
