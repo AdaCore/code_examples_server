@@ -10,15 +10,21 @@
 </head>
 <body>
 
-    <div class="wrapper">
-        <h3>AdaCore Books</h3>
-        <br>
-        <ul class="list-unstyled components">
-            {% for b in books %}
-            <li><a href="books/{{ b.url }}/part1-chapter1">{{ b.title }}</a></li>
-            {% endfor %}
-        </ul>
-
+    <div class="content">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>AdaCore Books</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in books %}
+                <tr>
+                    <td><a href="{{ HTTP_HOST }}/books/{{ b.url }}/part1-chapter1">{{ b.title }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <script src="{% static "ace-builds/src/ace.js" %}"  type="text/javascript" charset="utf-8"></script>

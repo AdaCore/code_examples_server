@@ -121,28 +121,40 @@ def book_list(request):
 
 def book_router(request, book, part, chapter):
     resources_base_path = os.path.join(settings.RESOURCES_DIR, "books")
-
     book_path = os.path.join(resources_base_path, book)
 
+    with open(os.path.join(resources_base_path, "book_list.yaml"), 'r') as f:
+        booklist = yaml.load(f)
+
+    # If the book url is not valid, jump back to book list
     if not os.path.isdir(book_path):
-        with open(os.path.join(resources_base_path, "book_list.yaml"), 'r') as f:
-            booklist = yaml.load(f)
         return render(request, 'book_list.html', booklist)
 
     path = os.path.join(book_path, "chapters.yaml")
 
+    # open chapters list of book
     with open(path, 'r') as f:
         bookdata = yaml.load(f)
 
+    # store chapters and parts list in htmldata
     htmldata = bookdata
+
+    # store book url and book title for side bar and absolute path references
+    for b in booklist['books']:
+        if b['url'] == book:
+            htmldata['book_title'] = b['title']
+    htmldata['book_url'] = book
+
+    # store chapter and part numbers for absolute links
     htmldata['sel_part'] = int(part)
     htmldata['sel_chapter'] = int(chapter)
 
+    # strip chapters out of list into new list for prev, next references
     chapter_list = []
-
     for p in bookdata['parts']:
         chapter_list.extend(p['chapters'])
 
+    # search list for current, prev, and next chapter references
     val_search = "part%s-chapter%s" % (part, chapter)
 
     inrange = False
@@ -156,6 +168,7 @@ def book_router(request, book, part, chapter):
                 htmldata['next_topic'] = chapter_list[i + 1]
             break
 
+    # load page, if part or chapter is out of range go to unknown page link
     if inrange:
         content_page = os.path.join(book_path,
                                     "pages",
