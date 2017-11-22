@@ -4,6 +4,10 @@
 
 {% block sidebar %}
 <nav id="sidebar">
+    <div class="sidebar-header">
+        <h3>{{ book_title }}</h3>
+        <a href="{{ HTTP_HOST }}/books/">Back to book list</a>
+    </div>
     <ul class="list-unstyled components">
         {% for p in parts %}
         {% if forloop.counter == sel_part %}
