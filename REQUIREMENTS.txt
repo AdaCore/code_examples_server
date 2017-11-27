@@ -4,3 +4,4 @@ django-cors-headers
 pyyaml
 markdown
 docutils
+pygments

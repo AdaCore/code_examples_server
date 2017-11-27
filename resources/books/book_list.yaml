@@ -2,6 +2,6 @@
 books:
   - title: "Ada For The C Developer"
     url: "Ada_For_The_C_Developer"
-  - title: "Ada For the C++ Java Developer v2"
-    url: "Ada_For_The_C++_Java_Developer_v2"
+  - title: "Ada For the C++ Java Developer"
+    url: "Ada_For_The_CPP_Java_Developer"
 ...
