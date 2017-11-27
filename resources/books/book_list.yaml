@@ -1,7 +1,0 @@
----
-books:
-  - title: "Ada For The C Developer"
-    url: "Ada_For_The_C_Programmer_Book"
-  - title: "Ada For the C++ Java Developer"
-    url: "Ada_For_The_CPP_Java_Developer"
-...

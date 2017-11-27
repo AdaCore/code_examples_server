@@ -18,9 +18,10 @@ from rest_framework.response import Response
 from compile_server.app.serializers import (UserSerializer,
                                             GroupSerializer,
                                             ResourceSerializer,
-                                            ExampleSerializer)
+                                            ExampleSerializer,
+                                            BookSerializer)
 
-from compile_server.app.models import Resource, Example
+from compile_server.app.models import Resource, Example, Book
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -112,38 +113,35 @@ def examples_list(request):
 
 
 def book_list(request):
-    resources_base_path = os.path.join(settings.RESOURCES_DIR, "books")
-
-    with open(os.path.join(resources_base_path, "book_list.yaml"), 'r') as f:
-        booklist = yaml.load(f)
+    booklist = {'books': Book.objects.all}
     return render(request, 'book_list.html', booklist)
 
 
-def book_router(request, book, part, chapter):
+def book_router(request, subpath, part, chapter):
     resources_base_path = os.path.join(settings.RESOURCES_DIR, "books")
-    book_path = os.path.join(resources_base_path, book)
 
-    with open(os.path.join(resources_base_path, "book_list.yaml"), 'r') as f:
-        booklist = yaml.load(f)
-
-    # If the book url is not valid, jump back to book list
-    if not os.path.isdir(book_path):
+    matches = Book.objects.filter(subpath=subpath)
+    if not matches:
+        booklist = {'books': Book.object.all}
         return render(request, 'book_list.html', booklist)
 
-    path = os.path.join(book_path, "chapters.yaml")
+    bk = matches[0]
+    serializer = BookSerializer(bk)
+
+    book = serializer.data
 
     # open chapters list of book
-    with open(path, 'r') as f:
-        bookdata = yaml.load(f)
+    with open(os.path.join(book['directory'], "chapters.yaml"), 'r') as f:
+        try:
+            bookdata = yaml.load(f.read())
+        except:
+            print format_traceback
+            print 'Could not decode yaml in {}'.format(book['directory'])
+            return
 
     # store chapters and parts list in htmldata
     htmldata = bookdata
-
-    # store book url and book title for side bar and absolute path references
-    for b in booklist['books']:
-        if b['url'] == book:
-            htmldata['book_title'] = b['title']
-    htmldata['book_url'] = book
+    htmldata['book_info'] = book
 
     # store chapter and part numbers for absolute links
     htmldata['sel_part'] = int(part)
@@ -170,10 +168,10 @@ def book_router(request, book, part, chapter):
 
     # load page, if part or chapter is out of range go to unknown page link
     if inrange:
-        mdcontent_page = os.path.join(book_path,
+        mdcontent_page = os.path.join(book['directory'],
                                     "pages",
                                     "part%s-chapter%s.md" % (part, chapter))
-        rstcontent_page = os.path.join(book_path,
+        rstcontent_page = os.path.join(book['directory'],
                                       "pages",
                                       "part%s-chapter%s.rst" % (part, chapter))
 

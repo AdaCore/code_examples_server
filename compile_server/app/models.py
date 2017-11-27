@@ -48,3 +48,21 @@ class Example(models.Model):
 
     # An example is a contains a set of resources
     resources = models.ManyToManyField(Resource)
+
+
+class Book(models.Model):
+    """ The represents a book """
+
+    # the directory in relation to resources/books
+    # that has the resources for this book
+    directory = models.TextField()
+
+    # This is the name of the book formatted as a url subdomain
+    # This is be the same name of the folder where the book lives under resources
+    subpath = models.TextField()
+
+    # A description of the book
+    description = models.TextField()
+
+    # the title of the book
+    title = models.TextField()

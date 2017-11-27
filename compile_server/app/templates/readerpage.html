@@ -6,7 +6,7 @@
 {% block sidebar %}
 <nav id="sidebar">
     <div class="sidebar-header">
-        <h3>{{ book_title }}</h3>
+        <h3>{{ book_info.title }}</h3>
         <a href="{{ HTTP_HOST }}/books/">Back to book list</a>
     </div>
     <ul class="list-unstyled components">
@@ -24,7 +24,7 @@
                 {% else %}
                 <li>
                 {% endif %}
-                    <a href="{{ HTTP_HOST }}/books/{{ book_url }}/{{ c.url }}">{{ c.title }}</a>
+                    <a href="{{ HTTP_HOST }}/books/{{ book_info.subpath }}/{{ c.url }}">{{ c.title }}</a>
                 </li>
                 {% endfor %}
             </ul>
@@ -52,10 +52,10 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav navbar-right">
                     {% if prev_topic %}
-                    <li><a href="{{ HTTP_HOST }}/books/{{ book_url }}/{{ prev_topic.url }}">Prev - {{ prev_topic.title }}</a></li>
+                    <li><a href="{{ HTTP_HOST }}/books/{{ book_info.subpath }}/{{ prev_topic.url }}">Prev - {{ prev_topic.title }}</a></li>
                     {% endif %}
                     {% if next_topic %}
-                    <li><a href="{{ HTTP_HOST }}/books/{{ book_url }}/{{ next_topic.url }}">Next - {{ next_topic.title }}</a></li>
+                    <li><a href="{{ HTTP_HOST }}/books/{{ book_info.subpath }}/{{ next_topic.url }}">Next - {{ next_topic.title }}</a></li>
                     {% endif %}
                 </ul>
             </div>
