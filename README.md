@@ -30,6 +30,11 @@ To enter some examples in the database, do this:
 ./manage.py fill_examples --dir=resources/example/hello_world
 ```
 
+To enter some books in the database, do this:
+```sh
+./manage.py fill_books --dir=resources/books/example
+```
+
 To launch the server, do this:
 ```sh
 ./manage.py runserver

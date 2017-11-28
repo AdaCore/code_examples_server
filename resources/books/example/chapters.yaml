@@ -1,0 +1,18 @@
+---
+title: "Example Book"
+description: "This is an example book that is a placeholder."
+parts:
+  - title: "Part 1"
+    chapters:
+      - title: "Chapter 1"
+        url: "part1-chapter1"
+      - title: "Chapter 2"
+        url: "part1-chapter2"
+  - title: "Part 2"
+    chapters:
+      - title: "Chapter 1"
+        url: "part2-chapter1"
+      - title: "Chapter 2"
+        url: "part2-chapter2"
+...
+

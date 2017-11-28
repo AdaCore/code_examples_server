@@ -19,8 +19,9 @@
             </thead>
             <tbody>
                 {% for b in books %}
-                <tr>
-                    <td><a href="{{ HTTP_HOST }}/books/{{ b.url }}/part1-chapter1">{{ b.title }}</a></td>
+                <tr class='clickable-row' data-href="{{ HTTP_HOST }}/books/{{ b.subpath }}/part1-chapter1">
+                    <td>{{ b.title }}</td>
+                    <td>{{ b.description }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -33,6 +34,14 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script src="{% static "editors.js" %}"></script>
     <script src="{% static "sidebar.js" %}"></script>
+    <script type=""text/javascript">
+        jQuery(document).ready(function($) {
+            $(".clickable-row").click(function() {
+                window.location = $(this).data("href");
+            });
+        });
+    </script>
+
 
 </body>
 </html>
