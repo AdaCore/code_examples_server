@@ -1,7 +1,8 @@
-django
-djangorestframework
-django-cors-headers
-pyyaml
-markdown
-docutils
-pygments
+Django==1.11.5
+django-cors-headers==2.1.0
+djangorestframework==3.6.4
+docutils==0.14
+Markdown==2.6.9
+Pygments==2.2.0
+pytz==2017.2
+PyYAML==3.12
