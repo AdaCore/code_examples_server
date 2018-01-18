@@ -56,7 +56,7 @@ urlpatterns = [
     url(r'^examples_list/', views.examples_list),
 
     # URL router for Books
-    url(r'^books/(.+)/part(\d+)-chapter(\d+)', views.book_router),
+    url(r'^books/(.+)', views.book_router),
 
     # URL router for Book landing
     url(r'^books', views.book_list),

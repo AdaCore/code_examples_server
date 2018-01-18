@@ -19,7 +19,7 @@
             </thead>
             <tbody>
                 {% for b in books %}
-                <tr class='clickable-row' data-href="{{ HTTP_HOST }}/books/{{ b.subpath }}/part1-chapter1">
+                <tr class='clickable-row' data-href="{{ HTTP_HOST }}/books/{{ b.subpath }}">
                     <td>{{ b.title }}</td>
                     <td>{{ b.description }}</td>
                 </tr>

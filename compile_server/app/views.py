@@ -11,6 +11,8 @@ import yaml
 from django.conf import settings
 
 from django.contrib.auth.models import User, Group
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
@@ -117,7 +119,7 @@ def book_list(request):
     return render(request, 'book_list.html', booklist)
 
 
-def book_router(request, subpath, part, chapter):
+def book_router(request, subpath):
     resources_base_path = os.path.join(settings.RESOURCES_DIR, "books")
 
     matches = Book.objects.filter(subpath=subpath)
@@ -143,52 +145,44 @@ def book_router(request, subpath, part, chapter):
     htmldata = bookdata
     htmldata['book_info'] = book
 
-    # store chapter and part numbers for absolute links
-    htmldata['sel_part'] = int(part)
-    htmldata['sel_chapter'] = int(chapter)
-
     # strip chapters out of list into new list for prev, next references
     chapter_list = []
     for p in bookdata['parts']:
         chapter_list.extend(p['chapters'])
 
-    # search list for current, prev, and next chapter references
-    val_search = "part%s-chapter%s" % (part, chapter)
+    paginator = Paginator(chapter_list, 1)
+    page = request.GET.get('page', 1)
 
-    inrange = False
-    for i, ch in enumerate(chapter_list):
-        if ch['url'] == val_search:
-            inrange = True
-            htmldata['sel_topic'] = ch
-            if i != 0:
-                htmldata['prev_topic'] = chapter_list[i - 1]
-            if i != len(chapter_list) - 1:
-                htmldata['next_topic'] = chapter_list[i + 1]
-            break
+    try:
+        chapter_obj = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        chapter_obj = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        chapter_obj = paginator.page(paginator.num_pages)
 
-    # load page, if part or chapter is out of range go to unknown page link
-    if inrange:
-        mdcontent_page = os.path.join(book['directory'],
-                                    "pages",
-                                    "part%s-chapter%s.md" % (part, chapter))
-        rstcontent_page = os.path.join(book['directory'],
-                                      "pages",
-                                      "part%s-chapter%s.rst" % (part, chapter))
+    htmldata['chapter_obj'] = chapter_obj
 
-        # check for markdown version
-        if os.path.isfile(mdcontent_page):
-            with open(mdcontent_page, 'r') as f:
-                htmldata['mdcontent'] = f.read()
-        elif os.path.isfile(rstcontent_page):
-            with open(rstcontent_page, 'r') as f:
-                htmldata['rstcontent'] = f.read()
-        else:
-            with open(os.path.join(resources_base_path,
-                                   "under-construction.md")) as f:
-                htmldata['mdcontent'] = f.read()
+    chapter = chapter_obj.object_list[0]
+
+    mdcontent_page = os.path.join(book['directory'],
+                                "pages",
+                                "%s.md" % (chapter["url"]))
+    rstcontent_page = os.path.join(book['directory'],
+                                  "pages",
+                                  "%s.rst" % (chapter["url"]))
+
+    # check for markdown version
+    if os.path.isfile(mdcontent_page):
+        with open(mdcontent_page, 'r') as f:
+            htmldata['mdcontent'] = f.read()
+    elif os.path.isfile(rstcontent_page):
+        with open(rstcontent_page, 'r') as f:
+            htmldata['rstcontent'] = f.read()
     else:
         with open(os.path.join(resources_base_path,
-                               "invalid-page.md")) as f:
+                               "under-construction.md")) as f:
             htmldata['mdcontent'] = f.read()
 
-    return render(request, 'readerpage.html', htmldata)
+    return render(request, 'book_sidebar.html', htmldata)

@@ -10,7 +10,7 @@ This is a test of inserting code blocks in the RST
 
 .. raw:: html
 
-   <div example_editor="Hello World">
+   <div example_editor="Hello world runnable example">
 
 .. raw:: html
 
