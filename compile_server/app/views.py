@@ -185,4 +185,9 @@ def book_router(request, subpath):
                                "under-construction.md")) as f:
             htmldata['mdcontent'] = f.read()
 
-    return render(request, 'book_sidebar.html', htmldata)
+    if request.is_ajax():
+        template = 'readerpage.html'
+    else:
+        template = 'book_sidebar.html'
+
+    return render(request, template, htmldata)

@@ -1,22 +1,6 @@
 {% load markdown_filter %}
 {% load rst_filter %}
 
-{% block javascript %}
-  <script>
-    $(document).ready(function(){
-        var infinite = new Waypoint.Infinite({
-          element: $('.infinite-container')[0],
-          onBeforePageLoad: function () {
-            $('.loading').show();
-          },
-          onAfterPageLoad: function ($items) {
-            $('.loading').hide();
-          }
-        });
-     });
-  </script>
-{% endblock %}
-
 {% block reader %}
 
 <div id="content">
@@ -24,6 +8,7 @@
     <div class="infinite-container">
 
         <div class="infinite-item">
+            <div id="page_anchor_{{ chapter_obj.number }}" class="waypoint_anchor"></div>
             {% if mdcontent %}
                 {{ mdcontent|markdownify|safe }}
             {% elif rstcontent %}
@@ -38,7 +23,7 @@
       </div>
 
       {% if chapter_obj.has_next %}
-        <a class="infinite-more-link" href="{{ HTTP_HOST }}/books/{{ book_info.subpath }}?page={{ chapter_obj.next_page_number }}"></a>
+        <a class="infinite-more-link" href="{{ HTTP_HOST }}/books/{{ book_info.subpath }}?page={{ chapter_obj.next_page_number }}">Next</a>
       {% endif %}
 
 

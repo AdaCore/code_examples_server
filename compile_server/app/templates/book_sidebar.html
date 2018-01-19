@@ -29,7 +29,7 @@
                     {% else %}
                     <li>
                     {% endif %}
-                        <a href="{{ HTTP_HOST }}/books/{{ book_info.subpath }}?page={{ c.page }}">{{ c.title }}</a>
+                        <a id="sidebar-page{{ c.page }}" class="sidebar-link" href="#">{{ c.title }}</a>
                     </li>
                     {% endfor %}
                 </ul>
@@ -40,7 +40,7 @@
     </div>
   </nav>
 
-    <div class="reader_content">
+    <div id="reader_content">
         {% include "readerpage.html" %}
     </div>
 {% endblock%}
