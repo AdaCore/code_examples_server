@@ -66,3 +66,6 @@ class Book(models.Model):
 
     # the title of the book
     title = models.TextField()
+
+    # the author of the book
+    author = models.TextField()

@@ -1,31 +1,6 @@
-{% load markdown_filter %}
-{% load rst_filter %}
-
 {% block reader %}
 
 <div id="content">
-
-    <div class="infinite-container">
-
-        <div class="infinite-item">
-            <div id="page_anchor_{{ chapter_obj.number }}" class="waypoint_anchor"></div>
-            {% if mdcontent %}
-                {{ mdcontent|markdownify|safe }}
-            {% elif rstcontent %}
-                {{ rstcontent|rstify|safe }}
-            {% endif %}
-        </div>
-
-    </div>
-
-      <div class="loading" style="display: none;">
-        Loading...
-      </div>
-
-      {% if chapter_obj.has_next %}
-        <a class="infinite-more-link" href="{{ HTTP_HOST }}/books/{{ book_info.subpath }}?page={{ chapter_obj.next_page_number }}">Next</a>
-      {% endif %}
-
-
+    {{ content|safe }}
 </div>
 {% endblock%}

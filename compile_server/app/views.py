@@ -4,14 +4,15 @@ from __future__ import unicode_literals
 from django.shortcuts import render
 
 # Create your views here.
-
+from bs4 import BeautifulSoup
+import docutils
+import markdown
 import os
 import yaml
 
 from django.conf import settings
 
 from django.contrib.auth.models import User, Group
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework import viewsets, status
@@ -119,6 +120,62 @@ def book_list(request):
     return render(request, 'book_list.html', booklist)
 
 
+def md_filter(text):
+    return markdown.markdown(text)
+
+
+def rst_filter(text):
+    return docutils.core.publish_parts(text, writer_name='html')['html_body']
+
+
+def toc_filter(htmldata):
+    def append_li(ul, i, h):
+        h['id'] = "header" + str(i)
+        new_link_tag = toc_soup.new_tag('a', href='#')
+        new_link_tag.string = h.string
+        new_link_tag['class'] = "toc_link"
+        new_link_tag['id'] = "hlink" + str(i)
+
+        new_li_tag = toc_soup.new_tag('li')
+        new_li_tag.append(new_link_tag)
+        ul.append(new_li_tag)
+
+    def append_ul(ul):
+        new_ul = toc_soup.new_tag('ul')
+        ul.append(new_ul)
+        return new_ul
+
+
+    prev_level = 1
+
+    reader_soup = BeautifulSoup(htmldata['content'], "html.parser")
+    toc_soup = BeautifulSoup(htmldata['sidebar'], "html.parser")
+
+    current_ul = toc_soup.ul
+
+    headers = reader_soup.find_all(['h1', 'h2'])
+
+    for i, h in enumerate(headers):
+        cur_level = int(h.name[1:])
+
+        if cur_level < prev_level:
+            outer_ul = current_ul.find_parent('ul')
+            if outer_ul is not None:
+                prev_level = cur_level
+                current_ul = outer_ul
+
+        elif cur_level > prev_level:
+            prev_level = cur_level
+            current_ul = append_ul(current_ul)
+
+        append_li(current_ul, i, h)
+
+
+    htmldata['content'] = str(reader_soup)
+    htmldata['sidebar'] = str(toc_soup)
+    return htmldata
+
+
 def book_router(request, subpath):
     resources_base_path = os.path.join(settings.RESOURCES_DIR, "books")
 
@@ -132,8 +189,8 @@ def book_router(request, subpath):
 
     book = serializer.data
 
-    # open chapters list of book
-    with open(os.path.join(book['directory'], "chapters.yaml"), 'r') as f:
+    # open book info
+    with open(os.path.join(book['directory'], "info.yaml"), 'r') as f:
         try:
             bookdata = yaml.load(f.read())
         except:
@@ -142,52 +199,28 @@ def book_router(request, subpath):
             return
 
     # store chapters and parts list in htmldata
-    htmldata = bookdata
+    htmldata = {}
     htmldata['book_info'] = book
 
-    # strip chapters out of list into new list for prev, next references
-    chapter_list = []
-    for p in bookdata['parts']:
-        chapter_list.extend(p['chapters'])
+    htmldata['content'] = ''
 
-    paginator = Paginator(chapter_list, 1)
-    page = request.GET.get('page', 1)
+    htmldata['sidebar'] = '<ul></ul>'
 
-    try:
-        chapter_obj = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        chapter_obj = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        chapter_obj = paginator.page(paginator.num_pages)
+    # get list of pages from info.yaml, convert to html, and concat into string
+    for page in bookdata['pages']:
+        filepath = os.path.join(book['directory'], page)
+        filename, file_ext = os.path.splitext(filepath)
+        if os.path.isfile(filepath):
+            with open(filepath, 'r') as f:
+                content = f.read()
+                if file_ext == '.md':
+                    htmldata['content'] += md_filter(content)
+                elif file_ext == '.rst':
+                    htmldata['content'] += rst_filter(content)
+        else:
+            with open(os.path.join(resources_base_path, "under-construction.md")) as f:
+                htmldata['content'] += md_filter(f.read())
 
-    htmldata['chapter_obj'] = chapter_obj
+    htmldata = toc_filter(htmldata)
 
-    chapter = chapter_obj.object_list[0]
-
-    mdcontent_page = os.path.join(book['directory'],
-                                "pages",
-                                "%s.md" % (chapter["url"]))
-    rstcontent_page = os.path.join(book['directory'],
-                                  "pages",
-                                  "%s.rst" % (chapter["url"]))
-
-    # check for markdown version
-    if os.path.isfile(mdcontent_page):
-        with open(mdcontent_page, 'r') as f:
-            htmldata['mdcontent'] = f.read()
-    elif os.path.isfile(rstcontent_page):
-        with open(rstcontent_page, 'r') as f:
-            htmldata['rstcontent'] = f.read()
-    else:
-        with open(os.path.join(resources_base_path,
-                               "under-construction.md")) as f:
-            htmldata['mdcontent'] = f.read()
-
-    if request.is_ajax():
-        template = 'readerpage.html'
-    else:
-        template = 'book_sidebar.html'
-
-    return render(request, template, htmldata)
+    return render(request, 'book_sidebar.html', htmldata)

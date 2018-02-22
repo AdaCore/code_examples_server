@@ -1,0 +1,11 @@
+---
+title: "Example Book"
+description: "This is an example book that is a placeholder."
+author: "Joe Schmo"
+pages:
+  - "part1-chapter1.md"
+  - "part1-chapter2.rst"
+  - "part2-chapter1.md"
+  - "part2-chapter2.rst"
+...
+

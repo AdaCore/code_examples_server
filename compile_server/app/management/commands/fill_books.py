@@ -33,7 +33,7 @@ class Command(BaseCommand):
                 return
 
             # Look for 'chapters.yaml'
-            chapters_yaml = os.path.join(d, 'chapters.yaml')
+            chapters_yaml = os.path.join(d, 'info.yaml')
             if not os.path.isfile(chapters_yaml):
                 print 'There is no "chapters.yaml" in {}'.format(d)
                 return
@@ -55,5 +55,6 @@ class Command(BaseCommand):
             b = Book(description=metadata['description'],
                      directory=d,
                      subpath=os.path.basename(os.path.normpath(d)),
-                     title=metadata['title'])
+                     title=metadata['title'],
+                     author=metadata['author'])
             b.save()
