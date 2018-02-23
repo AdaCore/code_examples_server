@@ -133,15 +133,17 @@ def toc_filter(htmldata):
         h['id'] = "header" + str(i)
         new_link_tag = toc_soup.new_tag('a', href='#')
         new_link_tag.string = h.string
-        new_link_tag['class'] = "toc_link"
+        new_link_tag['class'] = "toc-link pure-menu-link"
         new_link_tag['id'] = "hlink" + str(i)
 
         new_li_tag = toc_soup.new_tag('li')
+        new_li_tag['class'] = "pure-menu-item"
         new_li_tag.append(new_link_tag)
         ul.append(new_li_tag)
 
     def append_ul(ul):
         new_ul = toc_soup.new_tag('ul')
+        new_ul['class'] = "pure-menu-list"
         ul.append(new_ul)
         return new_ul
 
@@ -204,7 +206,7 @@ def book_router(request, subpath):
 
     htmldata['content'] = ''
 
-    htmldata['sidebar'] = '<ul></ul>'
+    htmldata['sidebar'] = '<ul class="pure-menu-list"></ul>'
 
     # get list of pages from info.yaml, convert to html, and concat into string
     for page in bookdata['pages']:
@@ -223,4 +225,4 @@ def book_router(request, subpath):
 
     htmldata = toc_filter(htmldata)
 
-    return render(request, 'book_sidebar.html', htmldata)
+    return render(request, 'readerpage.html', htmldata)

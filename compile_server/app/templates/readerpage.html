@@ -1,6 +1,23 @@
-{% block reader %}
+{% extends 'book_base.html' %} {% block reader %}
 
-<div id="content">
-    {{ content|safe }}
+<!-- Menu toggle -->
+<a href="#sidebar" id="sidebarLink" class="menu-link">
+    <!-- Hamburger icon -->
+    <span></span>
+</a>
+
+<div id="sidebar">
+    <div class="pure-menu">
+        <div id="toc">{{ sidebar|safe }}</div>
+    </div>
 </div>
+
+<div id="main">
+    <div class="header">
+        <h1>{{ book_info.title }}</h1>
+        <h2><a href="{{ HTTP_HOST }}/books/">Back to book list</a></h2>
+    </div>
+    <div id="content" class="content">{{ content|safe }}</div>
+</div>
+
 {% endblock%}
