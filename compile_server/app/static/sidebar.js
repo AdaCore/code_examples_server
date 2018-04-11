@@ -1,13 +1,25 @@
-$(document).ready( function() {
+$( document ).ready( function() {
     $( document ).on( "scroll", onScroll);
 
-    $( ".toc-link" ).click( function() {
+    $( ".toc-link" ).click( function(e) {
 
         var hid = lid2hid( $( this ).attr( 'id' ) );
+        var div_position = $( hid ).offset().top;
+        var padding = 12;
+        var header_offset = $( "#title_header" ).outerHeight();
 
         $( 'html, body' ).animate( {
-            scrollTop: $( hid ).offset().top
+            scrollTop: (div_position - header_offset - padding)
         }, 800);
+        
+        if ( $( "#sidebar" ).hasClass( 'active' ) )
+            toggleAll(e);
+    });
+    
+    $( "#sidebarLink" ).click( toggleAll );
+    $( "#main" ).click( function(e) {
+        if ( $( "#sidebar" ).hasClass( 'active' ) )
+            toggleAll(e);
     });
 
     onScroll();
@@ -42,4 +54,14 @@ function inView(elem) {
     bounds.bottom = bounds.top + $( elem ).outerHeight();
 
     return ((bounds.top <= viewport.bottom) && (bounds.bottom >= viewport.top));
+}
+
+function toggleAll(e) {
+    var active = 'active';
+
+    e.preventDefault();
+    
+    $( "#wrapper" ).toggleClass( active );
+    $( "#sidebar" ).toggleClass( active );
+    $( "#sidebarLink" ).toggleClass( active );
 }

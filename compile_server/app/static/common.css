@@ -53,3 +53,9 @@ div.output_row button{
    margin-right:4px;
    margin-top:2px;
 }
+
+.read-only {
+    background-color: #c0c0c0;
+    opacity: 0.2;
+    position: absolute;
+}

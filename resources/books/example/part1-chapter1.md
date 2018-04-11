@@ -3,10 +3,23 @@ Part 1 Chapter 1
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam id massa felis. Nam eget risus sit amet ante tempor lacinia. Mauris ut nunc sem. Cras mattis, nibh quis fermentum porttitor, arcu tortor porttitor magna, ac adipiscing quam urna at lectus. Ut at dolor in elit tempor ultrices sagittis sed lacus. Nullam a lectus mauris. Pellentesque molestie, leo in auctor semper, magna sem mattis tellus, a consectetur nisl tellus volutpat quam. Etiam ultricies risus sed sapien convallis aliquet. Curabitur vehicula purus vitae justo commodo facilisis. Quisque at porta ipsum. Sed purus leo, mattis sed ultricies ac, ultricies eget lacus. Sed ac nibh est. Suspendisse sed orci nisl. Vestibulum ultrices metus sapien, sed interdum nunc. In arcu neque, sollicitudin ut porta eu, viverra at elit. Nam accumsan condimentum metus nec accumsan. Nunc porta consectetur nisi in ornare. Vestibulum tempor mollis dui quis luctus. Aliquam dolor enim, tristique a blandit eu, auctor ut odio.
 
-### Test
+Test Editor
+------------
  This is a test of inserting code blocks in the markdown
 
- <div example_editor="Hello world runnable example"></div>
+ <div example_editor="Hello world runnable example" inline="true">
+    <div class="resource" region="editable_1">
+   Put_Line ("Hello, World Editable 1");
+    </div>
+ </div>
+ 
+  <div example_editor="Hello world runnable example" inline="true">
+    <div class="resource" region="editable_1">
+   for I in 1 .. 10 loop
+      Put_Line ("Hello, World " & I'Img);
+   end loop;
+    </div>
+ </div>
 
 Fusce molestie commodo nisi, bibendum dictum purus vehicula vel. Nulla mattis lobortis ipsum ac ornare. Integer sed erat vel mauris volutpat sodales nec auctor nulla. Aliquam ac adipiscing erat. Aliquam erat volutpat. Aenean fringilla congue odio non mattis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Quisque porta vehicula diam, et placerat eros iaculis et. Cras nec ante ipsum, eu cursus sem. Suspendisse nec orci neque, ac egestas sapien.
 

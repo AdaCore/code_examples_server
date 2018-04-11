@@ -44,6 +44,10 @@ This is the parent `<div>` that contains the menu and the content area.
 The content `<div>` is where all your content goes.
 */
 
+#main {
+    margin: 0 0 0 330px;
+}
+
 .content {
     margin: 0 auto;
     padding: 0 2em;
@@ -105,7 +109,6 @@ appears on the left side of the page.
     background: #191818;
     overflow-y: auto;
     overflow-x: hidden;
-    overflow-wrap: break-word;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -116,7 +119,9 @@ appears on the left side of the page.
 #sidebar a {
     color: #999;
     border: none;
-    padding: 0.6em 0 0.6em 0.6em;
+    padding: 0.6em 0.6em 0.6em 0.6em;
+    
+    white-space: normal;
 }
 
 /*
@@ -136,6 +141,10 @@ appears on the left side of the page.
 #sidebar .pure-menu ul,
 #sidebar .pure-menu .menu-item-divided {
     border-top: 1px solid #333;
+}
+
+#sidebar ul ul {
+    margin-left: 15px;
 }
 
 /*
@@ -240,7 +249,7 @@ small screens.
 Hides the menu at `48em`, but modify this based on your app's needs.
 */
 
-@media (min-width: 48em) {
+@media (min-width: 1165px) {
 
     .header,
     .content {
@@ -268,7 +277,7 @@ Hides the menu at `48em`, but modify this based on your app's needs.
     }
 }
 
-@media (max-width: 48em) {
+@media (max-width: 1165px) {
     /* Only apply this when the window is small. Otherwise, the following
     case results in extra padding on the left:
         * Make the window small.

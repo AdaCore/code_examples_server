@@ -5,7 +5,7 @@ from django.shortcuts import render
 
 # Create your views here.
 from bs4 import BeautifulSoup
-import docutils
+from docutils import core
 import markdown
 import os
 import yaml
@@ -125,10 +125,12 @@ def md_filter(text):
 
 
 def rst_filter(text):
-    return docutils.core.publish_parts(text, writer_name='html')['html_body']
+    parts = core.publish_parts(text, writer_name='html')
+    return parts['body_pre_docinfo'] + parts['fragment']
 
 
-def toc_filter(htmldata):
+def toc_filter(htmldata):   
+    
     def append_li(ul, i, h):
         h['id'] = "header" + str(i)
         new_link_tag = toc_soup.new_tag('a', href='#')
