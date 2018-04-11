@@ -13,7 +13,7 @@ Test Editor
     </div>
  </div>
  
-  <div example_editor="Hello world runnable example" inline="true">
+  <div example_editor="Hello world runnable example" inline="true" readonly="true">
     <div class="resource" region="editable_1">
    for I in 1 .. 10 loop
       Put_Line ("Hello, World " & I'Img);
