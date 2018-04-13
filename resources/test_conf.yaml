@@ -1,0 +1,16 @@
+---
+sources:
+    - repo: https://github.com/AdaCore/Compile_And_Prove_Demo.git
+      examples: 
+        - examples/hello_world
+        - examples/absolute_value
+        - examples/bitwise_swap 
+        - examples/saturate_angle
+        - examples/sensor_average 
+        - examples/strings 
+        - examples/communications 
+        - examples/landing_procedure
+    - repo: templates
+      examples:
+        - simple_main
+...
