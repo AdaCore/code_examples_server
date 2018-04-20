@@ -30,6 +30,11 @@ To enter some examples in the database, do this:
 ./manage.py fill_examples --dir=resources/example/hello_world
 ```
 
+To enter many examples in the database where the examples are listed in a yaml file, do this:
+```sh
+./manage.py fill_examples --conf=resources/test_conf.yaml
+```
+
 To enter some books in the database, do this:
 ```sh
 ./manage.py fill_books --dir=resources/books/example
