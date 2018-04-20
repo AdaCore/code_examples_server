@@ -54,16 +54,3 @@ for a in $list; do ./manage.py fill_examples --dir=resources/Compile_And_Prove_D
 
 ./manage.py fill_examples --remove_all
 ./manage.py fill_exmaples --conf=resources/test_conf.yaml
-
-################
-# Import books #
-################
-
-# TODO: add a facility to do this
-
-# Setup:
-cd resources/books ; git clone https://github.com/Robert-Tice/Ada_For_The_CPP_Java_Developer.git ; git clone https://github.com/Robert-Tice/Ada_for_the_C_Programmer_Book.git
-
-./manage.py fill_books --remove_all
-list="Ada_for_the_C_Programmer_Book Ada_For_The_CPP_Java_Developer"
-for a in $list; do ./manage.py fill_books --dir=resources/books/$a ; done

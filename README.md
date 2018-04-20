@@ -35,11 +35,6 @@ To enter many examples in the database where the examples are listed in a yaml f
 ./manage.py fill_examples --conf=resources/test_conf.yaml
 ```
 
-To enter some books in the database, do this:
-```sh
-./manage.py fill_books --dir=resources/books/example
-```
-
 To launch the server, do this:
 ```sh
 ./manage.py runserver

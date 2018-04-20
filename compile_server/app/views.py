@@ -4,11 +4,6 @@ from __future__ import unicode_literals
 from django.shortcuts import render
 
 # Create your views here.
-from bs4 import BeautifulSoup
-from docutils import core
-import markdown
-import os
-import yaml
 
 from django.conf import settings
 
@@ -21,10 +16,9 @@ from rest_framework.response import Response
 from compile_server.app.serializers import (UserSerializer,
                                             GroupSerializer,
                                             ResourceSerializer,
-                                            ExampleSerializer,
-                                            BookSerializer)
+                                            ExampleSerializer)
 
-from compile_server.app.models import Resource, Example, Book
+from compile_server.app.models import Resource, Example
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -113,118 +107,3 @@ def code_embed(request, example_name):
 def examples_list(request):
     context = {'examples': Example.objects.all}
     return render(request, 'examples_list.html', context)
-
-
-def book_list(request):
-    booklist = {'books': Book.objects.all}
-    return render(request, 'book_list.html', booklist)
-
-
-def md_filter(text):
-    return markdown.markdown(text)
-
-
-def rst_filter(text):
-    parts = core.publish_parts(text, writer_name='html')
-    return parts['body_pre_docinfo'] + parts['fragment']
-
-
-def toc_filter(htmldata):   
-    
-    def append_li(ul, i, h):
-        h['id'] = "header" + str(i)
-        new_link_tag = toc_soup.new_tag('a', href='#')
-        new_link_tag.string = h.string
-        new_link_tag['class'] = "toc-link pure-menu-link"
-        new_link_tag['id'] = "hlink" + str(i)
-
-        new_li_tag = toc_soup.new_tag('li')
-        new_li_tag['class'] = "pure-menu-item"
-        new_li_tag.append(new_link_tag)
-        ul.append(new_li_tag)
-
-    def append_ul(ul):
-        new_ul = toc_soup.new_tag('ul')
-        new_ul['class'] = "pure-menu-list"
-        ul.append(new_ul)
-        return new_ul
-
-
-    prev_level = 1
-
-    reader_soup = BeautifulSoup(htmldata['content'], "html.parser")
-    toc_soup = BeautifulSoup(htmldata['sidebar'], "html.parser")
-
-    current_ul = toc_soup.ul
-
-    headers = reader_soup.find_all(['h1', 'h2'])
-
-    for i, h in enumerate(headers):
-        cur_level = int(h.name[1:])
-
-        if cur_level < prev_level:
-            outer_ul = current_ul.find_parent('ul')
-            if outer_ul is not None:
-                prev_level = cur_level
-                current_ul = outer_ul
-
-        elif cur_level > prev_level:
-            prev_level = cur_level
-            current_ul = append_ul(current_ul)
-
-        append_li(current_ul, i, h)
-
-
-    htmldata['content'] = str(reader_soup)
-    htmldata['sidebar'] = str(toc_soup)
-    return htmldata
-
-
-def book_router(request, subpath):
-    resources_base_path = os.path.join(settings.RESOURCES_DIR, "books")
-
-    matches = Book.objects.filter(subpath=subpath)
-    if not matches:
-        booklist = {'books': Book.object.all}
-        return render(request, 'book_list.html', booklist)
-
-    bk = matches[0]
-    serializer = BookSerializer(bk)
-
-    book = serializer.data
-
-    # open book info
-    with open(os.path.join(book['directory'], "info.yaml"), 'r') as f:
-        try:
-            bookdata = yaml.load(f.read())
-        except:
-            print format_traceback
-            print 'Could not decode yaml in {}'.format(book['directory'])
-            return
-
-    # store chapters and parts list in htmldata
-    htmldata = {}
-    htmldata['book_info'] = book
-
-    htmldata['content'] = ''
-
-    htmldata['sidebar'] = '<ul class="pure-menu-list"></ul>'
-
-    # get list of pages from info.yaml, convert to html, and concat into string
-    for page in bookdata['pages']:
-        filepath = os.path.join(book['directory'], page)
-        filename, file_ext = os.path.splitext(filepath)
-        if os.path.isfile(filepath):
-            with open(filepath, 'r') as f:
-                content = f.read()
-                if file_ext == '.md':
-                    htmldata['content'] += md_filter(content)
-                elif file_ext == '.rst':
-                    htmldata['content'] += rst_filter(content)
-        else:
-            with open(os.path.join(resources_base_path, "under-construction.md")) as f:
-                htmldata['content'] += md_filter(f.read())
-
-    htmldata = toc_filter(htmldata)
-
-    return render(request, 'readerpage.html', htmldata)
