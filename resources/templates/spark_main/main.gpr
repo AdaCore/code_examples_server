@@ -1,0 +1,15 @@
+project Main is
+
+   for Main use ("main.adb");
+
+   package Compiler is
+      for Switches ("ada") use ("-g", "-gnatwa", "-gnatQ");
+   end Compiler;
+
+   package Builder is
+      for Switches ("ada") use ("-g", "-O0");
+
+      for Global_Configuration_Pragmas use "main.adc";
+   end Builder;
+
+end Main;
