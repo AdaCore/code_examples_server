@@ -124,7 +124,7 @@ def check_program(request):
     tempd = prep_example_directory(e, received_json)
 
     # Run the command(s) to check the program
-    command = ["gnatprove", "-P", "main"]
+    command = ["gnatprove", "-P", "main", "--checks-as-errors"]
 
     try:
         p = process_handling.SeparateProcess([command], tempd)
