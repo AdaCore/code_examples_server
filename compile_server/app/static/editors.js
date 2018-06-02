@@ -20,7 +20,7 @@ function process_check_output(editors, output_area, output, status, completed, m
         read_lines++
 
         // Look for lines that contain an error message
-        var match_found = l.match(/^([a-zA-Z._-]+):(\d+):(\d+):(.+)$/)
+        var match_found = l.match(/^([a-zA-Z._0-9-]+):(\d+):(\d+):(.+)$/)
         var klass = match_found ? "output_msg" : "output_line"
 
         // Print the line in the output area
