@@ -1,9 +1,7 @@
 project Main is
 
-   for Main use ("main.adb");
-
    package Compiler is
-      for Switches ("ada") use ("-g", "-gnatwa", "-gnatQ");
+      for Switches ("ada") use ("-g");
    end Compiler;
 
    package Builder is
