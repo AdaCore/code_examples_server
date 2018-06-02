@@ -54,3 +54,29 @@ for a in $list; do ./manage.py fill_examples --dir=resources/Compile_And_Prove_D
 
 ./manage.py fill_examples --remove_all
 ./manage.py fill_exmaples --conf=resources/test_conf.yaml
+
+#############
+# editor.js #
+#############
+
+You can pass your own files to an inline editor using sub-divs
+that have the class "file" and their basename specified in the
+corresponding attribute, like so:
+
+     <div example_editor="SPARK Main"
+          example_server="http://localhost:8000"
+          inline="true">
+
+        <div class="file" basename="main.ads">
+            with ada.text_io;
+            package main is
+               procedure foo;
+            end main;
+        </div>
+
+        <div class="file" basename="main.adb">
+           with ada.text_io;
+           package body main is
+           end main2;
+        </div>
+     </div>

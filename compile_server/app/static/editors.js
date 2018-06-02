@@ -38,7 +38,9 @@ function process_check_output(editors, output_area, output, status, completed, m
                     editors.forEach(function (e) {
                         if (e.basename == basename) {
                             // Switch to the tab that contains the editor
-                            $("#" + e.unique_id + "-tab").tab('show')
+
+                            // TODO: this is in the case of bootstrap only
+                            // $("#" + e.unique_id + "-tab").tab('show')
 
                             // Jump to the corresponding line
                             e.gotoLine(parseInt(match_found[2]),
@@ -151,6 +153,272 @@ function query_operation_result(container, example_name, editors, output_area, o
         })
 }
 
+
+function create_editor(resource, container, content, editors, counter) {
+   var the_id = "tab_" + container.attr("the_id") + "-" + counter
+   var div = $('<div role="tabpanel" class="tab-pane' +
+       (counter == 1 ? ' active' : '') +
+       '" id="' + the_id + '">');
+   var editordiv = $('<div class="editor_container' + (is_inline?' inline':'') + '"'
+                     + ' id="' + resource.basename + the_id + '_editor">');
+   editordiv.appendTo(div);
+   div.appendTo(content);
+
+   // ACE editors...
+   var editor = ace.edit(resource.basename + the_id + '_editor');
+   editor.session.setMode("ace/mode/ada");
+
+   // ... and their contents
+   editor.setValue(resource.contents);
+   editor.setShowPrintMargin(false);
+   editor.gotoLine(1);
+   editor.initial_contents = resource.contents;
+   editor.basename = resource.basename;
+   editor.unique_id = the_id;
+
+   editor.setOptions({
+       "highlightActiveLine": false,
+   });
+
+   // check if we are overriding db content with inline content
+   if (container.attr("inline")) {
+       $(container).children(".resource").each(function () {
+           if ($(this).attr("region")) {
+               region = $(this).attr("region");
+
+               // search editor content for region "region"
+               beginregion = editor.find("--  #region " + region);
+               endregion = editor.find("--  #endregion " + region);
+
+               newRange = beginregion.clone();
+               newRange.end.row = endregion.end.row;
+               newRange.end.column = endregion.end.column;
+
+               textReplace = $(this).text().replace(/^\s|\s+$/g, '');
+
+               editor.getSession().getDocument().replace(newRange, textReplace);
+               $(this).text('');
+           }
+          else {
+             // No region: replace the whole editor
+             editor.initial_contents = $(this).text();
+             editor.setValue($(this).text());
+             $(this).text('');
+          }
+       })
+   }
+
+   // search for remaining region marks and remove
+   editor.replaceAll("", {
+       needle: "--  #region (.*)\n",
+       regExp: true
+   });
+   editor.replaceAll("", {
+       needle: "--  #endregion (.*)\n",
+       regExp: true
+   });
+
+   // check if container is readonly
+   if (container.attr("readonly")) {
+       // remove all read only tags in the editor
+       editor.replaceAll("", {
+           needle: "--  (begin|end) readonly",
+           regExp: true
+       });
+
+       editor.setOption("readOnly", true);
+   } else {
+       // look for readonly sections
+       roStack = [];
+       roList = [];
+       editor.setOption("readOnly", false);
+       selection = editor.getSession().getSelection();
+       selection.clearSelection();
+       selection.moveCursorFileStart();
+
+       while (tag = editor.find("--  (begin|end) readonly", {
+               regExp: true,
+               wrap: false
+           })) {
+           var str = editor.getSession().getDocument().getTextRange(tag);
+           var re = new RegExp('--  (begin|end) readonly');
+           var type = re.exec(str)[1];
+
+           if (type == "begin") {
+               roStack.push(tag);
+           } else {
+               if (roStack.length == 0) {
+                   tag.start.row = 0;
+                   tag.start.column = 0;
+
+               } else {
+                   var beginRange = roStack.pop();
+                   tag.start = beginRange.start;
+               }
+               roList.push(tag);
+           }
+       }
+
+       while (roStack.length > 0) {
+           var beginRange = roStack.pop();
+           var numRows = editor.getSession().getLength() - 1;
+           var numCols = editor.getSession().getLine(numRows).length;
+
+           beginRange.end.row = numRows;
+           beginRange.end.column = numCols;
+
+           roList.push(beginRange);
+       }
+
+       selection.clearSelection();
+       for (var i = 0; i < roList.length; i++) {
+           selection.addRange(roList[i]);
+       }
+
+       selection.mergeOverlappingRanges();
+       editor.readOnlyRanges = selection.getAllRanges();
+
+       // hijack keyboard commands on editor
+       editor.keyBinding.addKeyboardHandler({
+           handleKeyboard: function (data, hash, keyString, keyCode, event) {
+               if (Math.abs(keyCode) == 13 && onEnd(editor.getCursorPosition())) {
+                   return false;
+               }
+               if (hash === -1 || (keyCode <= 40 && keyCode >= 37)) return false;
+               for (i = 0; i < editor.readOnlyRanges.length; i++) {
+                   if (intersects(editor.readOnlyRanges[i])) {
+                       return {
+                           command: "null",
+                           passEvent: false
+                       };
+                   }
+               }
+           }
+       });
+
+       before(editor, 'onPaste', preventReadonly);
+       before(editor, 'onCut', preventReadonly);
+
+       function before(obj, method, wrapper) {
+           var orig = obj[method];
+           obj[method] = function () {
+               var args = Array.prototype.slice.call(arguments);
+               return wrapper.call(this, function () {
+                   return orig.apply(obj, args);
+               }, args);
+           }
+
+           return obj[method];
+       }
+
+       function intersects(range) {
+           return editor.getSelectionRange().intersects(range);
+       }
+
+       function intersectsRange(newRange) {
+           for (var i = 0; i < editor.readOnlyRanges.length; i++) {
+               if (newRange.intersects(editor.readOnlyRanges[i])) {
+                   return true;
+               }
+           }
+           return false;
+       }
+
+       function preventReadonly(next, args) {
+           for (var i = 0; i < editor.readOnlyRanges.length; i++) {
+               if (intersects(editor.readOnlyRanges[i]))
+                   return;
+           }
+           next();
+       }
+
+       function onEnd(position) {
+           var row = position["row"];
+           var column = position["column"];
+
+           for (var i = 0; i < editor.readOnlyRanges.length; i++) {
+               if (editor.readOnlyRanges[i].end["row"] == row && editor.readOnlyRanges[i].end["column"] == column) {
+                   return true;
+               }
+           }
+           return false;
+       }
+
+       function outSideRange(position) {
+           var row = position["row"];
+           var column = position["column"];
+
+           for (var i = 0; i < editor.readOnlyRanges.length; i++) {
+               if (editor.readOnlyRanges[i].start["row"] < row && editor.readOnlyRanges[i].end["row"] > row) {
+                   return false;
+               }
+
+               if (editor.readOnlyRanges[i].start["row"] == row && editor.readOnlyRanges[i].start["column"] < column) {
+                   if (editor.readOnlyRanges[i].end["row"] != row || editor.readOnlyRanges[i].end["column"] > column) {
+                       return false;
+                   }
+               } else if (editor.readOnlyRanges[i].end["row"] == row && editor.readOnlyRanges[i].end["column"] > column) {
+                   return false;
+               }
+           }
+           return true;
+       }
+
+       for (var i = 0; i < editor.readOnlyRanges.length; i++) {
+           // add readonly class to lines
+           editor.getSession().addMarker(editor.readOnlyRanges[i], "read-only");
+
+           // add anchors around ro sections
+           editor.readOnlyRanges[i].start = editor.getSession().getDocument().createAnchor(editor.readOnlyRanges[i].start);
+           editor.readOnlyRanges[i].end = editor.getSession().getDocument().createAnchor(editor.readOnlyRanges[i].end);
+           editor.readOnlyRanges[i].end.$insertRight = true;
+
+           // TODO: add folding mode to ada definition then uncomment the following
+           //editor.getSession().addFold("read only", editor.readOnlyRanges[i]);
+       }
+
+       // remove all read only tags in the editor
+       editor.replaceAll("", {
+           needle: "--  (begin|end) readonly",
+           regExp: true
+       });
+
+       var old$tryReplace = editor.$tryReplace;
+       editor.$tryReplace = function (range, replacement) {
+           return intersectsRange(range) ? null : old$tryReplace.apply(this, arguments);
+       }
+       var session = editor.getSession();
+       var oldInsert = session.insert;
+       session.insert = function (position, text) {
+           return oldInsert.apply(this, [position, outSideRange(position) ? text : ""]);
+       }
+       var oldRemove = session.remove;
+       session.remove = function (range) {
+           return intersectsRange(range) ? false : oldRemove.apply(this, arguments);
+       }
+       var oldMoveText = session.moveText;
+       session.moveText = function (fromRange, toPosition, copy) {
+           if (intersectsRange(fromRange) || !outSideRange(toPosition)) return fromRange;
+           return oldMoveText.apply(this, arguments);
+       }
+   }
+
+   // Inline? set the editor to use exactly the vertical space it needs
+   if (is_inline){
+       editor.setOptions({
+            maxLines: editor.session.getLength()
+       })
+   }
+
+   // place the cursor at 1,1
+   editor.selection.moveTo(0, 0);
+
+   // clear undo stack to avoid undoing everything we just did
+   editor.getSession().getUndoManager().reset();
+
+   return editor;
+}
+
 // Fills a <div> with an editable representation of an example.
 //    container: the <div> in question
 //    example_name: the name of the example to load
@@ -177,26 +445,38 @@ function fill_editor(container, example_name, example_server) {
         .done(function (json) {
             // On success, create editors for each of the resources
 
-            // First create the tabs
-
-            var ul = $('<ul class="nav nav-tabs" role="tablist">')
-            ul.appendTo(container);
-
-            var counter = 0;
-
-            json.resources.forEach(function (resource) {
-                counter++;
-                var the_id = "tab_" + container.attr("the_id") + "-" + counter
-
-                var li = $('<li role="presentation" class="' +
-                    (counter == 1 ? 'active' : '') +
-                    '">').appendTo(ul);
-                $('<a href="#' + the_id + '" aria-controls="' +
-                    the_id + '" ' +
-                    'id="' + the_id + '-tab"' +
-                    'role="tab" data-toggle="tab">' +
-                    resource.basename + '</a>').appendTo(li)
+            $(container).children(".file").each(function () {
+                // Create a fake resource for each 'file' div
+                a = Object();
+                a.basename = $(this).attr("basename");
+                a.contents = $(this).text();
+                $(this).text('');
+                json.resources.push(a);
             })
+
+            // First create the tabs
+            is_inline = container.attr("inline")
+
+            if (!is_inline){
+               var ul = $('<ul class="nav nav-tabs" role="tablist">')
+               ul.appendTo(container);
+
+               var counter = 0;
+
+               json.resources.forEach(function (resource) {
+                   counter++;
+                   var the_id = "tab_" + container.attr("the_id") + "-" + counter
+
+                   var li = $('<li role="presentation" class="' +
+                       (counter == 1 ? 'active' : '') +
+                       '">').appendTo(ul);
+                   $('<a href="#' + the_id + '" aria-controls="' +
+                       the_id + '" ' +
+                       'id="' + the_id + '-tab"' +
+                       'role="tab" data-toggle="tab">' +
+                       resource.basename + '</a>').appendTo(li)
+               })
+            }
 
             // Then fill the contents of the tabs
 
@@ -209,254 +489,7 @@ function fill_editor(container, example_name, example_server) {
 
             json.resources.forEach(function (resource) {
                 counter++;
-
-                var the_id = "tab_" + container.attr("the_id") + "-" + counter
-                var div = $('<div role="tabpanel" class="tab-pane' +
-                    (counter == 1 ? ' active' : '') +
-                    '" id="' + the_id + '">');
-                var editordiv = $('<div class="editor_container" id="' + resource.basename + the_id + '_editor">');
-                editordiv.appendTo(div);
-                div.appendTo(content);
-
-                // ACE editors...
-                var editor = ace.edit(resource.basename + the_id + '_editor');
-                editor.session.setMode("ace/mode/ada");
-
-                // ... and their contents
-                editor.setValue(resource.contents);
-                editor.setShowPrintMargin(false);
-                editor.gotoLine(1);
-                editor.initial_contents = resource.contents;
-                editor.basename = resource.basename;
-                editor.unique_id = the_id;
-
-                editor.setOptions({
-                    "highlightActiveLine": false,
-                });
-
-                // check if we are overriding db content with inline content
-                if (container.attr("inline")) {
-                    $(container).children(".resource").each(function () {
-                        if ($(this).attr("region")) {
-                            region = $(this).attr("region");
-
-                            // search editor content for region "region"
-                            beginregion = editor.find("--  #region " + region);
-                            endregion = editor.find("--  #endregion " + region);
-
-                            newRange = beginregion.clone();
-                            newRange.end.row = endregion.end.row;
-                            newRange.end.column = endregion.end.column;
-
-                            textReplace = $(this).text().replace(/^\s|\s+$/g, '');
-
-                            editor.getSession().getDocument().replace(newRange, textReplace);
-                            $(this).text('');
-                        }
-                    })
-                }
-
-                // search for remaining region marks and remove
-                editor.replaceAll("", {
-                    needle: "--  #region (.*)\n",
-                    regExp: true
-                });
-                editor.replaceAll("", {
-                    needle: "--  #endregion (.*)\n",
-                    regExp: true
-                });
-
-                // check if container is readonly
-                if (container.attr("readonly")) {                    
-                    // remove all read only tags in the editor
-                    editor.replaceAll("", {
-                        needle: "--  (begin|end) readonly",
-                        regExp: true
-                    });
-                    
-                    editor.setOption("readOnly", true);
-                } else {
-                    // look for readonly sections
-                    roStack = [];
-                    roList = [];
-                    editor.setOption("readOnly", false);
-                    selection = editor.getSession().getSelection();
-                    selection.clearSelection();
-                    selection.moveCursorFileStart();
-
-                    while (tag = editor.find("--  (begin|end) readonly", {
-                            regExp: true,
-                            wrap: false
-                        })) {
-                        var str = editor.getSession().getDocument().getTextRange(tag);
-                        var re = new RegExp('--  (begin|end) readonly');
-                        var type = re.exec(str)[1];
-
-                        if (type == "begin") {
-                            roStack.push(tag);
-                        } else {
-                            if (roStack.length == 0) {
-                                tag.start.row = 0;
-                                tag.start.column = 0;
-
-                            } else {
-                                var beginRange = roStack.pop();
-                                tag.start = beginRange.start;
-                            }
-                            roList.push(tag);
-                        }
-                    }
-
-                    while (roStack.length > 0) {
-                        var beginRange = roStack.pop();
-                        var numRows = editor.getSession().getLength() - 1;
-                        var numCols = editor.getSession().getLine(numRows).length;
-
-                        beginRange.end.row = numRows;
-                        beginRange.end.column = numCols;
-
-                        roList.push(beginRange);
-                    }
-
-                    selection.clearSelection();
-                    for (var i = 0; i < roList.length; i++) {
-                        selection.addRange(roList[i]);
-                    }
-
-                    selection.mergeOverlappingRanges();
-                    editor.readOnlyRanges = selection.getAllRanges();
-
-                    // hijack keyboard commands on editor
-                    editor.keyBinding.addKeyboardHandler({
-                        handleKeyboard: function (data, hash, keyString, keyCode, event) {
-                            if (Math.abs(keyCode) == 13 && onEnd(editor.getCursorPosition())) {
-                                return false;
-                            }
-                            if (hash === -1 || (keyCode <= 40 && keyCode >= 37)) return false;
-                            for (i = 0; i < editor.readOnlyRanges.length; i++) {
-                                if (intersects(editor.readOnlyRanges[i])) {
-                                    return {
-                                        command: "null",
-                                        passEvent: false
-                                    };
-                                }
-                            }
-                        }
-                    });
-
-                    before(editor, 'onPaste', preventReadonly);
-                    before(editor, 'onCut', preventReadonly);
-
-                    function before(obj, method, wrapper) {
-                        var orig = obj[method];
-                        obj[method] = function () {
-                            var args = Array.prototype.slice.call(arguments);
-                            return wrapper.call(this, function () {
-                                return orig.apply(obj, args);
-                            }, args);
-                        }
-
-                        return obj[method];
-                    }
-
-                    function intersects(range) {
-                        return editor.getSelectionRange().intersects(range);
-                    }
-
-                    function intersectsRange(newRange) {
-                        for (var i = 0; i < editor.readOnlyRanges.length; i++) {
-                            if (newRange.intersects(editor.readOnlyRanges[i])) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-
-                    function preventReadonly(next, args) {
-                        for (var i = 0; i < editor.readOnlyRanges.length; i++) {
-                            if (intersects(editor.readOnlyRanges[i]))
-                                return;
-                        }
-                        next();
-                    }
-
-                    function onEnd(position) {
-                        var row = position["row"];
-                        var column = position["column"];
-
-                        for (var i = 0; i < editor.readOnlyRanges.length; i++) {
-                            if (editor.readOnlyRanges[i].end["row"] == row && editor.readOnlyRanges[i].end["column"] == column) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-
-                    function outSideRange(position) {
-                        var row = position["row"];
-                        var column = position["column"];
-
-                        for (var i = 0; i < editor.readOnlyRanges.length; i++) {
-                            if (editor.readOnlyRanges[i].start["row"] < row && editor.readOnlyRanges[i].end["row"] > row) {
-                                return false;
-                            }
-
-                            if (editor.readOnlyRanges[i].start["row"] == row && editor.readOnlyRanges[i].start["column"] < column) {
-                                if (editor.readOnlyRanges[i].end["row"] != row || editor.readOnlyRanges[i].end["column"] > column) {
-                                    return false;
-                                }
-                            } else if (editor.readOnlyRanges[i].end["row"] == row && editor.readOnlyRanges[i].end["column"] > column) {
-                                return false;
-                            }
-                        }
-                        return true;
-                    }
-
-                    for (var i = 0; i < editor.readOnlyRanges.length; i++) {
-                        // add readonly class to lines
-                        editor.getSession().addMarker(editor.readOnlyRanges[i], "read-only");
-
-                        // add anchors around ro sections
-                        editor.readOnlyRanges[i].start = editor.getSession().getDocument().createAnchor(editor.readOnlyRanges[i].start);
-                        editor.readOnlyRanges[i].end = editor.getSession().getDocument().createAnchor(editor.readOnlyRanges[i].end);
-                        editor.readOnlyRanges[i].end.$insertRight = true;
-
-                        // TODO: add folding mode to ada definition then uncomment the following
-                        //editor.getSession().addFold("read only", editor.readOnlyRanges[i]);     
-                    }
-
-                    // remove all read only tags in the editor
-                    editor.replaceAll("", {
-                        needle: "--  (begin|end) readonly",
-                        regExp: true
-                    });
-
-                    var old$tryReplace = editor.$tryReplace;
-                    editor.$tryReplace = function (range, replacement) {
-                        return intersectsRange(range) ? null : old$tryReplace.apply(this, arguments);
-                    }
-                    var session = editor.getSession();
-                    var oldInsert = session.insert;
-                    session.insert = function (position, text) {
-                        return oldInsert.apply(this, [position, outSideRange(position) ? text : ""]);
-                    }
-                    var oldRemove = session.remove;
-                    session.remove = function (range) {
-                        return intersectsRange(range) ? false : oldRemove.apply(this, arguments);
-                    }
-                    var oldMoveText = session.moveText;
-                    session.moveText = function (fromRange, toPosition, copy) {
-                        if (intersectsRange(fromRange) || !outSideRange(toPosition)) return fromRange;
-                        return oldMoveText.apply(this, arguments);
-                    }
-                }
-
-                // place the cursor at 1,1
-                editor.selection.moveTo(0, 0);
-
-                // clear undo stack to avoid undoing everything we just did
-                editor.getSession().getUndoManager().reset();
-
+                editor = create_editor(resource, container, content, editors, counter)
                 // Append the editor to the list of editors
                 editors.push(editor)
             })
@@ -469,10 +502,10 @@ function fill_editor(container, example_name, example_server) {
             var buttons_div = $('<div class="col-md-3">')
             buttons_div.appendTo(row)
 
-            reset_button = $('<button type="button" class="btn btn-secondary">').text("Reset").appendTo(buttons_div)
+            var reset_button = $('<button type="button" class="btn btn-secondary">').text("Reset").appendTo(buttons_div)
             reset_button.editors = editors
 
-            check_button = $('<button type="button" class="btn btn-primary">').text("Prove").appendTo(buttons_div)
+            var check_button = $('<button type="button" class="btn btn-primary">').text("Prove").appendTo(buttons_div)
             check_button.editors = editors
             // Create the output area
 
