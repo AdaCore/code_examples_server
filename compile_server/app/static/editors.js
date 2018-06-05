@@ -451,7 +451,7 @@ function fill_editor_from_contents(container, example_name, example_server,
 
       var counter = 0;
 
-      json.resources.forEach(function (resource) {
+      resources.forEach(function (resource) {
           counter++;
           var the_id = "tab_" + container.attr("the_id") + "-" + counter
 
