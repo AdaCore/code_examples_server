@@ -96,6 +96,28 @@ def prep_example_directory(example, received_json):
     return tempd
 
 
+def get_main(received_json):
+    """Retrieve the main information from the json"""
+
+    # Figure out which is the main
+    if 'main' not in received_json:
+        return None
+
+    return received_json['main']
+
+
+def doctor_main_gpr(tempd, main):
+    """Doctor the main.gpr to replace @MAIN@ with the name of the main."""
+    # In the temporary directory, doctor the project file to know about the
+    # main.
+
+    project_file = os.path.join(tempd, "main.gpr")
+    with codecs.open(project_file, "rb", encoding="utf-8") as f:
+        project_str = f.read()
+    with codecs.open(project_file, "wb", encoding="utf-8") as f:
+        f.write(project_str.replace('@MAIN@', main))
+
+
 @api_view(['POST'])
 def check_program(request):
 
@@ -112,6 +134,11 @@ def check_program(request):
             {'identifier': '', 'message': "example not found"})
 
     tempd = prep_example_directory(e, received_json)
+
+    main = get_main(received_json)
+
+    if main:
+        doctor_main_gpr(tempd, main)
 
     # Run the command(s) to check the program
     command = ["gnatprove", "-P", "main", "--checks-as-errors"]
@@ -150,22 +177,13 @@ def run_program(request):
             {'identifier': '', 'message': "example not found"})
 
     tempd = prep_example_directory(e, received_json)
+    main = get_main(received_json)
 
-    # Figure out which is the main
-    if 'main' not in received_json:
+    if not main:
         return CrossDomainResponse(
             {'identifier': '', 'message': "main not specified"})
 
-    main = received_json['main']
-
-    # In the temporary directory, doctor the project file to know about the
-    # main.
-
-    project_file = os.path.join(tempd, "main.gpr")
-    with codecs.open(project_file, "rb", encoding="utf-8") as f:
-        project_str = f.read()
-    with codecs.open(project_file, "wb", encoding="utf-8") as f:
-        f.write(project_str.replace('@MAIN@', main))
+    doctor_main_gpr(tempd, main)
 
     # Run the command(s) to check the program
     commands = [
