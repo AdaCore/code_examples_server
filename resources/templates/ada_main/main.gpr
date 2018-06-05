@@ -1,0 +1,13 @@
+project Main is
+
+   for Main use ("@MAIN@");
+
+   package Compiler is
+      for Switches ("ada") use ("-g");
+   end Compiler;
+
+   package Builder is
+      for Switches ("ada") use ("-g", "-O0");
+   end Builder;
+
+end Main;

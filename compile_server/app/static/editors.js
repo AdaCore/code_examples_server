@@ -117,6 +117,7 @@ function query_operation_result(container, example_name, editors, output_area, o
 
     files = []
 
+    // Grab the contents from actual editors
     editors.forEach(function (e) {
         files.push({
             'basename': e.basename,
@@ -124,10 +125,22 @@ function query_operation_result(container, example_name, editors, output_area, o
         })
     })
 
+    // Grab the contents from shadow files
+    if (container.shadow_files){
+      container.shadow_files.forEach(function (e){
+        files.push({
+            'basename': e.basename,
+            'contents': e.contents
+            });
+      });
+    }
+
     data = {
         "example_name": example_name,
-        "files": files
+        "files": files,
+        "main": container.attr("main")
     }
+
 
     // request the examples
     $.ajax({
@@ -425,144 +438,169 @@ function create_editor(resource, container, content, editors, counter) {
 
 var unique_id = 0
 
+function fill_editor_from_contents(container, example_name, example_server,
+                                   resources, main) {
+
+   is_inline = container.attr("inline")
+
+   // First create the tabs
+
+   if (!is_inline){
+      var ul = $('<ul class="nav nav-tabs" role="tablist">')
+      ul.appendTo(container);
+
+      var counter = 0;
+
+      json.resources.forEach(function (resource) {
+          counter++;
+          var the_id = "tab_" + container.attr("the_id") + "-" + counter
+
+          var li = $('<li role="presentation" class="' +
+              (counter == 1 ? 'active' : '') +
+              '">').appendTo(ul);
+          $('<a href="#' + the_id + '" aria-controls="' +
+              the_id + '" ' +
+              'id="' + the_id + '-tab"' +
+              'role="tab" data-toggle="tab">' +
+              resource.basename + '</a>').appendTo(li)
+      })
+   }
+
+   // Then fill the contents of the tabs
+
+   var content = $('<div class="tab-content">')
+   content.appendTo(container);
+
+   counter = 0;
+
+   var editors = []
+
+   resources.forEach(function (resource) {
+       counter++;
+       editor = create_editor(resource, container, content, editors, counter)
+       // Append the editor to the list of editors
+       editors.push(editor)
+   })
+
+   var row = $('<div class="row output_row">')
+   row.appendTo(container)
+
+   // create the buttons
+
+   var buttons_div = $('<div class="col-md-3">')
+   buttons_div.appendTo(row)
+
+   var output_div = $('<div class="col-md-9">')
+   output_div.appendTo(row)
+
+   var output_area = $('<div class="output_area">')
+   output_area.appendTo(output_div)
+
+   if (container.attr("prove_button") || container.attr("run_button")){
+      var reset_button = $('<button type="button" class="btn btn-secondary">').text("Reset").appendTo(buttons_div)
+      reset_button.editors = editors;
+      reset_button.on('click', function (x) {
+          output_area.empty();
+          output_area.error_count = 0;
+
+          reset_button.editors.forEach(function (x) {
+              x.setValue(x.initial_contents);
+              x.gotoLine(1);
+          })
+      })
+   }
+
+   if (container.attr("prove_button")){
+      var check_button = $('<button type="button" class="btn btn-primary">').text("Prove").appendTo(buttons_div)
+      check_button.editors = editors;
+      check_button.on('click', function (x) {
+          output_area.empty();
+          output_area.error_count = 0;
+
+          var div = $('<div class="output_info">');
+          div.text("Proving...");
+          div.appendTo(output_area);
+          query_operation_result(container, example_name, check_button.editors, output_area, "/check_program/");
+       })
+   }
+
+   if (container.attr("run_button")){
+       var run_button = $('<button type="button" class="btn btn-primary">').text("Run").appendTo(buttons_div);
+       run_button.editors = editors;
+       run_button.on('click', function (x) {
+           output_area.empty();
+           output_area.error_count = 0;
+
+           var div = $('<div class="output_info">');
+           div.text("Running...");
+           div.appendTo(output_area);
+           query_operation_result(container, example_name, run_button.editors, output_area, "/run_program/");
+       })
+   }
+}
+
 function fill_editor(container, example_name, example_server) {
     unique_id++;
     container.attr("the_id", unique_id);
     container.example_server = example_server;
 
+    is_inline = container.attr("inline");
 
-    // request the examples
-    $.ajax({
-            url: container.example_server + "/example/" + example_name,
-            data: {},
-            type: "GET",
-            // dataType : "json",
-            contentType: 'text/plain',
-            crossDomain: true,
-            //      headers: { "Origin": "http://www.adacore.com" }
+    if (is_inline){
+       // In inline mode, just assume all the sources are here, do not
+       // request them in AJAX
 
-        })
-        .done(function (json) {
-            // On success, create editors for each of the resources
+       // List the "file" divs, add these as resources
+       var resources = []
+       $(container).children(".file").each(function () {
+          // Create a fake resource for each 'file' div
+          a = Object();
+          a.basename = $(this).attr("basename");
+          a.contents = $(this).text();
+          $(this).text('');
+          resources.push(a);
+       })
 
-            $(container).children(".file").each(function () {
-                // Create a fake resource for each 'file' div
-                a = Object();
-                a.basename = $(this).attr("basename");
-                a.contents = $(this).text();
-                $(this).text('');
-                json.resources.push(a);
-            })
+       // List the contents of the ".shadow_file" divs
+       container.shadow_files = []
+       $(container).children(".shadow_file").each(function () {
+          // Create a fake resource for each 'file' div
+          a = Object();
+          a.basename = $(this).attr("basename");
+          a.contents = $(this).text();
+          $(this).text('');
+          container.shadow_files.push(a);
+       })
 
-            // First create the tabs
-            is_inline = container.attr("inline")
+       fill_editor_from_contents(container, example_name, example_server,
+                                 resources, container.attr("main"));
+    } else {
 
-            if (!is_inline){
-               var ul = $('<ul class="nav nav-tabs" role="tablist">')
-               ul.appendTo(container);
+       // request the examples
+       $.ajax({
+               url: container.example_server + "/example/" + example_name,
+               data: {},
+               type: "GET",
+               // dataType : "json",
+               contentType: 'text/plain',
+               crossDomain: true,
+               //      headers: { "Origin": "http://www.adacore.com" }
 
-               var counter = 0;
+           })
+           .done(function (json) {
+               // On success, create editors for each of the resources
 
-               json.resources.forEach(function (resource) {
-                   counter++;
-                   var the_id = "tab_" + container.attr("the_id") + "-" + counter
+               fill_editor_from_contents(container, example_name, example_server,
+                                         json.resources, json.main);
 
-                   var li = $('<li role="presentation" class="' +
-                       (counter == 1 ? 'active' : '') +
-                       '">').appendTo(ul);
-                   $('<a href="#' + the_id + '" aria-controls="' +
-                       the_id + '" ' +
-                       'id="' + the_id + '-tab"' +
-                       'role="tab" data-toggle="tab">' +
-                       resource.basename + '</a>').appendTo(li)
                })
-            }
-
-            // Then fill the contents of the tabs
-
-            var content = $('<div class="tab-content">')
-            content.appendTo(container);
-
-            counter = 0;
-
-            var editors = []
-
-            json.resources.forEach(function (resource) {
-                counter++;
-                editor = create_editor(resource, container, content, editors, counter)
-                // Append the editor to the list of editors
-                editors.push(editor)
-            })
-
-            var row = $('<div class="row output_row">')
-            row.appendTo(container)
-
-            // create the buttons
-
-            var buttons_div = $('<div class="col-md-3">')
-            buttons_div.appendTo(row)
-
-            var reset_button = $('<button type="button" class="btn btn-secondary">').text("Reset").appendTo(buttons_div)
-            reset_button.editors = editors
-
-            var check_button = $('<button type="button" class="btn btn-primary">').text("Prove").appendTo(buttons_div)
-            check_button.editors = editors
-            // Create the output area
-
-            if (json.main) {
-                run_button = $('<button type="button" class="btn btn-primary">').text("Run").appendTo(buttons_div)
-                run_button.editors = editors
-            }
-
-            var output_div = $('<div class="col-md-9">')
-            output_div.appendTo(row)
-
-            var output_area = $('<div class="output_area">')
-            output_area.appendTo(output_div)
-
-            // Connect the buttons
-            reset_button.on('click', function (x) {
-                output_area.empty()
-                output_area.error_count = 0
-
-                reset_button.editors.forEach(function (x) {
-                    x.setValue(x.initial_contents)
-                    x.gotoLine(1)
-                })
-            })
-
-            check_button.on('click', function (x) {
-                output_area.empty()
-                output_area.error_count = 0
-
-                var div = $('<div class="output_info">')
-                div.text("Proving...")
-                div.appendTo(output_area)
-                query_operation_result(container, example_name, check_button.editors, output_area, "/check_program/")
-            })
-
-            if (json.main) {
-                run_button.on('click', function (x) {
-                    output_area.empty()
-                    output_area.error_count = 0
-
-                    var div = $('<div class="output_info">')
-                    div.text("Running...")
-                    div.appendTo(output_area)
-                    query_operation_result(container, example_name, check_button.editors, output_area, "/run_program/")
-                })
-            }
-        })
-        .fail(function (xhr, status, errorThrown) {
-            //
-            alert("could not download the example");
-            console.log("Error: " + errorThrown);
-            console.log("Status: " + status);
-            console.dir(xhr);
-        });
-    // Code to run regardless of success or failure;
-    // commented for now - just so I remember how it's done
-    // .always(function( xhr, status ) {});
+           .fail(function (xhr, status, errorThrown) {
+               alert("could not download the example");
+               console.log("Error: " + errorThrown);
+               console.log("Status: " + status);
+               console.dir(xhr);
+           });
+        }
 }
 
 

@@ -19,7 +19,7 @@ from compile_server.app.views import CrossDomainResponse
 gnatprove_found = False
 gnatemulator_found = False
 
-ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE = False
+ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE = True
 # TODO: right now, executables are run through gnatemulator. We have not
 # yet done the due diligence to sandbox this, though, so deactivating the
 # run feature through this boolean.
@@ -33,16 +33,6 @@ def check_gnatprove():
         return True
     gnatprove_found = distutils.spawn.find_executable("gnatprove")
     return gnatprove_found
-
-
-def check_gnatemulator():
-    """Check that gnatemulator is found on the PATH"""
-    # Do the check once, for performance
-    global gnatemulator_found
-    if gnatemulator_found:
-        return True
-    gnatemulator_found = distutils.spawn.find_executable("arm-eabi-gnatemu")
-    return gnatemulator_found
 
 
 @api_view(['POST'])
@@ -153,29 +143,38 @@ def run_program(request):
 
     # Sanity check for the existence of gnatprove
 
-    if not check_gnatemulator():
-        return CrossDomainResponse({'identifier': '',
-                                    'message': "gnatemulator not found"})
-
     received_json = json.loads(request.body)
     e = get_example(received_json)
-    received_json = json.loads(request.body)
-
-    if not e.main:
-        return CrossDomainResponse(
-            {'identifier': '',
-             'message': "example does not have a main"})
-
-    tempd = prep_example_directory(e, received_json)
-    if not tempd:
+    if not e:
         return CrossDomainResponse(
             {'identifier': '', 'message': "example not found"})
+
+    tempd = prep_example_directory(e, received_json)
+
+    # Figure out which is the main
+    if 'main' not in received_json:
+        return CrossDomainResponse(
+            {'identifier': '', 'message': "main not specified"})
+
+    main = received_json['main']
+
+    # In the temporary directory, doctor the project file to know about the
+    # main.
+
+    project_file = os.path.join(tempd, "main.gpr")
+    with codecs.open(project_file, "rb", encoding="utf-8") as f:
+        project_str = f.read()
+    with codecs.open(project_file, "wb", encoding="utf-8") as f:
+        f.write(project_str.replace('@MAIN@', main))
 
     # Run the command(s) to check the program
     commands = [
                 ["gprbuild", "-q", "-P", "main"],
-                ["arm-eabi-gnatemu", "-P", "main", e.main],
+                # TODO: implement a safe execute in a container
+                [os.path.join(tempd, main[:-4])],
                ]
+
+    print commands
 
     try:
         p = process_handling.SeparateProcess(commands, tempd)
