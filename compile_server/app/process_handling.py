@@ -79,7 +79,7 @@ class SeparateProcess(object):
                     f.write(line)
 
             # Write the return code
-            self.p.poll()
+            self.p.wait()
             returncode = self.p.returncode
 
             # Cleanup
