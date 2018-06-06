@@ -138,7 +138,8 @@ function query_operation_result(container, example_name, editors, output_area, o
     data = {
         "example_name": example_name,
         "files": files,
-        "main": container.attr("main")
+        "main": container.attr("main"),
+        "extra_args": container.attr("extra_args"),
     }
 
 

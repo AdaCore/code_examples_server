@@ -24,6 +24,11 @@ ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE = True
 # yet done the due diligence to sandbox this, though, so deactivating the
 # run feature through this boolean.
 
+ALLOWED_EXTRA_ARGS = {'spark-flow': "--mode=flow",
+                      'spark-report-all': "--report=all"}
+# We maintain a list of extra arguments that can be passed to the command
+# line. For security we don't want the user to pass arguments as-is.
+
 
 def check_gnatprove():
     """Check that gnatprove is found on the PATH"""
@@ -141,8 +146,17 @@ def check_program(request):
         doctor_main_gpr(tempd, main)
 
     # Run the command(s) to check the program
-    command = ["gnatprove", "-P", "main", "--checks-as-errors"]
+    command = ["gnatprove", "-P", "main", "--checks-as-errors", "--level=2"]
 
+    # Process extra_args
+    if 'extra_args' in received_json:
+        extra_args = received_json['extra_args']
+        if extra_args:
+            if extra_args not in ALLOWED_EXTRA_ARGS:
+                return CrossDomainResponse(
+                    {'identifier': '', 'message': "extra_args not known"})
+            command.append(ALLOWED_EXTRA_ARGS[extra_args])
+    print " ".join(command)
     try:
         p = process_handling.SeparateProcess([command], tempd)
         message = "running gnatprove"
@@ -191,8 +205,6 @@ def run_program(request):
                 # TODO: implement a safe execute in a container
                 [os.path.join(tempd, main[:-4])],
                ]
-
-    print commands
 
     try:
         p = process_handling.SeparateProcess(commands, tempd)
