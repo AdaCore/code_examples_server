@@ -7,7 +7,7 @@ project Main is
    end Compiler;
 
    package Builder is
-      for Switches ("ada") use ("-g", "-O0");
+      for Switches ("ada") use ("-g", "-O0", "-gnata");
    end Builder;
 
 end Main;
