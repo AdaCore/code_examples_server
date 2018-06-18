@@ -146,7 +146,8 @@ def check_program(request):
         doctor_main_gpr(tempd, main)
 
     # Run the command(s) to check the program
-    command = ["gnatprove", "-P", "main", "--checks-as-errors", "--level=2"]
+    command = ["gnatprove", "-P", "main", "--checks-as-errors",
+               "--level=0", "--no-axiom-guard"]
 
     # Process extra_args
     if 'extra_args' in received_json:
