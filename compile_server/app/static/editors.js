@@ -522,7 +522,14 @@ function fill_editor_from_contents(container, example_name, example_server,
    }
 
    if (container.attr("prove_button")){
-      var check_button = $('<button type="button" class="btn btn-primary">').text("Prove").appendTo(buttons_div)
+      var the_text = "Prove";
+
+      // Special case to call the button "Examine" in flow mode
+      if (container.attr("extra_args") == "spark-flow"){
+          var the_text = "Examine";
+      }
+
+      var check_button = $('<button type="button" class="btn btn-primary">').text(the_text).appendTo(buttons_div)
       check_button.editors = editors;
       check_button.on('click', function (x) {
           output_area.empty();
