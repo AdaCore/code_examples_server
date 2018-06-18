@@ -30,6 +30,17 @@ div.output_msg:hover{
    background-color:#fdd;
 }
 
+div.output_msg_info{
+   color: #449;
+   padding-left:15px;
+   padding-right:3px;
+}
+
+div.output_msg_info:hover{
+   background-color:#ddf;
+}
+
+
 div.output_info{
    color: #222;
    padding-left:3px;

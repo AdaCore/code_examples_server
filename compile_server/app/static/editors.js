@@ -21,7 +21,17 @@ function process_check_output(editors, output_area, output, status, completed, m
 
         // Look for lines that contain an error message
         var match_found = l.match(/^([a-zA-Z._0-9-]+):(\d+):(\d+):(.+)$/)
-        var klass = match_found ? "output_msg" : "output_line"
+        if (match_found) {
+           if (match_found[4].startsWith(" info:")) {
+              var klass = "output_msg_info"
+           }
+           else {
+              var klass = "output_msg"
+           }
+        }
+        else {
+           var klass = "output_line"
+        }
 
         // Print the line in the output area
         var div = $('<div class="' + klass + '">')
