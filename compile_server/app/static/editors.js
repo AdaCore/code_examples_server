@@ -20,17 +20,19 @@ function process_check_output(editors, output_area, output, status, completed, m
         read_lines++
 
         // Look for lines that contain an error message
+        var error_found = false;
         var match_found = l.match(/^([a-zA-Z._0-9-]+):(\d+):(\d+):(.+)$/)
         if (match_found) {
            if (match_found[4].startsWith(" info:")) {
-              var klass = "output_msg_info"
+              var klass = "output_msg_info";
            }
            else {
               var klass = "output_msg"
+              error_found = true;
            }
         }
         else {
-           var klass = "output_line"
+           var klass = "output_line";
         }
 
         // Print the line in the output area
@@ -39,28 +41,30 @@ function process_check_output(editors, output_area, output, status, completed, m
         div.appendTo(output_area)
 
         if (match_found != null) {
-            output_area.error_count++
+            if (error_found) {
+               output_area.error_count++
+            }
 
-                // Lines that contain a sloc are clickable:
-                div.on('click', function (x) {
-                    // find the corresponding editor
-                    var basename = match_found[1]
-                    editors.forEach(function (e) {
-                        if (e.basename == basename) {
-                            // Switch to the tab that contains the editor
+            // Lines that contain a sloc are clickable:
+            div.on('click', function (x) {
+               // find the corresponding editor
+               var basename = match_found[1]
+               editors.forEach(function (e) {
+                  if (e.basename == basename) {
+                     // Switch to the tab that contains the editor
 
-                            // TODO: this is in the case of bootstrap only
-                            // $("#" + e.unique_id + "-tab").tab('show')
+                     // TODO: this is in the case of bootstrap only
+                     // $("#" + e.unique_id + "-tab").tab('show')
 
-                            // Jump to the corresponding line
-                            e.gotoLine(parseInt(match_found[2]),
-                                // looks like column numbers are indexed from 0
-                                parseInt(match_found[3] - 1),
-                                true)
-                            e.focus()
-                        }
-                    })
+                     // Jump to the corresponding line
+                     e.gotoLine(parseInt(match_found[2]),
+                         // looks like column numbers are indexed from 0
+                         parseInt(match_found[3] - 1),
+                         true)
+                     e.focus()
+                   }
                 })
+            })
         }
     })
 
