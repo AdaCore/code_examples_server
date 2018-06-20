@@ -93,7 +93,6 @@ def prep_example_directory(example, received_json):
 
     # Overwrite with the user-contributed files
     for file in received_json['files']:
-        print "getting file" + str(file)
         with codecs.open(os.path.join(tempd, file['basename']),
                          'w', 'utf-8') as f:
             f.write(file['contents'])
@@ -111,16 +110,31 @@ def get_main(received_json):
     return received_json['main']
 
 
-def doctor_main_gpr(tempd, main):
-    """Doctor the main.gpr to replace @MAIN@ with the name of the main."""
+def doctor_main_gpr(tempd, main="", spark_mode=False):
+    """Doctor the main.gpr to replace the placeholder with the name of the
+       main, and the .adc configuration file for SPARK.
+
+       See template "inline_code".
+    """
     # In the temporary directory, doctor the project file to know about the
     # main.
 
     project_file = os.path.join(tempd, "main.gpr")
     with codecs.open(project_file, "rb", encoding="utf-8") as f:
         project_str = f.read()
+
+    if main:
+        project_str = project_str.replace(
+            "--MAIN_PLACEHOLDER--",
+            'for Main use ("{}");'.format(main))
+
+    if spark_mode:
+        project_str = project_str.replace(
+            "--ADC_PLACEHOLDER--",
+            'for Global_Configuration_Pragmas use "spark.adc";')
+
     with codecs.open(project_file, "wb", encoding="utf-8") as f:
-        f.write(project_str.replace('@MAIN@', main))
+        f.write(project_str)
 
 
 @api_view(['POST'])
@@ -141,9 +155,7 @@ def check_program(request):
     tempd = prep_example_directory(e, received_json)
 
     main = get_main(received_json)
-
-    if main:
-        doctor_main_gpr(tempd, main)
+    doctor_main_gpr(tempd, main, True)
 
     # Run the command(s) to check the program
     command = ["gnatprove", "-P", "main", "--checks-as-errors",

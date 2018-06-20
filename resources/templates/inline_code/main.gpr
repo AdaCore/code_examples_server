@@ -1,0 +1,14 @@
+project Main is
+
+   --MAIN_PLACEHOLDER--
+
+   package Compiler is
+      for Switches ("ada") use ("-g");
+   end Compiler;
+
+   package Builder is
+      for Switches ("ada") use ("-g", "-O0", "-gnata");
+      --ADC_PLACEHOLDER--
+   end Builder;
+
+end Main;
