@@ -23,7 +23,7 @@ function process_check_output(editors, output_area, output, status, completed, m
         var error_found = false;
         var match_found = l.match(/^([a-zA-Z._0-9-]+):(\d+):(\d+):(.+)$/)
         if (match_found) {
-           if (match_found[4].startsWith(" info:")) {
+           if (match_found[4].indexOf(" info:") == 0) {
               var klass = "output_msg_info";
            }
            else {
