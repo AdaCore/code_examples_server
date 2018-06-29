@@ -53,8 +53,10 @@ class SeparateProcess(object):
     def _monitor_timeout(self):
         """Monitor the running process, interrupting it if it takes too long"""
 
-        while not self.processes_running:
+        while self.processes_running:
             if time.time() - self.time > TIMEOUT_SECONDS:
+                with open(self.output_file, 'ab') as f:
+                    f.write("<interrupted after timeout>")
                 # The current process took too long, kill it
                 self.p.kill()
             time.sleep(1.0)
