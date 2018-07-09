@@ -214,10 +214,15 @@ def run_program(request):
 
     # Run the command(s) to check the program
     commands = [
+                # Build the program
                 ["gprbuild", "-q", "-P", "main"],
-                # TODO: implement a safe execute in a container
-                [os.path.join(tempd, main[:-4])],
+                # Launch the program via "safe_run", to sandbox it
+                ["python",
+                 os.path.join(os.path.dirname(__file__), 'safe_run.py'),
+                 os.path.join(tempd, main[:-4])],
                ]
+
+    print commands
 
     try:
         p = process_handling.SeparateProcess(commands, tempd)
