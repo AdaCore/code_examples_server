@@ -57,4 +57,9 @@ if __name__ == '__main__':
     # Do not perform any sanity checking on args - this is not meant to
     # be launched interactively
     main = sys.argv[1]
+
+    # lxc commands require a HOME - but this might not be set by nginx:
+    # do this here in this case
+    if "HOME" not in os.environ:
+        os.environ["HOME"] = "/home/compile_server"
     safe_run(main)
