@@ -37,8 +37,6 @@ def safe_run(main):
                                # This requires the dir to end with /
                                CONT + tmpdir + os.sep])
 
-        # TODO: rlimit?
-
         # Run it, printint output to stdout as we go along
         subprocess.call(["lxc", "exec", CONT, "--",
                          "su", "unprivileged", "-c",

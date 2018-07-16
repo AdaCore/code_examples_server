@@ -17,12 +17,6 @@ from compile_server.app import process_handling
 from compile_server.app.views import CrossDomainResponse
 
 gnatprove_found = False
-gnatemulator_found = False
-
-ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE = True
-# TODO: right now, executables are run through gnatemulator. We have not
-# yet done the due diligence to sandbox this, though, so deactivating the
-# run feature through this boolean.
 
 ALLOWED_EXTRA_ARGS = {'spark-flow': "--mode=flow",
                       'spark-report-all': "--report=all"}
@@ -186,14 +180,6 @@ def check_program(request):
 
 @api_view(['POST'])
 def run_program(request):
-
-    # Security check
-
-    if not ALLOW_RUNNING_PROGRAMS_EVEN_THOUGH_IT_IS_NOT_SECURE:
-        return CrossDomainResponse(
-           {'identifier': '',
-            'message': "running programs is disabled on this server"}
-        )
 
     # Sanity check for the existence of gnatprove
 
