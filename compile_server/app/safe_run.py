@@ -30,7 +30,7 @@ def safe_run(main):
     tmpdir = run(["mktemp", "-d"])
 
     try:
-        run(["chown", "ubuntu", tmpdir])
+        run(["chown", "unprivileged", tmpdir])
 
         # Push the executable to the container
         subprocess.check_call(["lxc", "file", "push", main,
@@ -41,7 +41,7 @@ def safe_run(main):
 
         # Run it, printint output to stdout as we go along
         subprocess.call(["lxc", "exec", CONT, "--",
-                         "su", "ubuntu", "-c",
+                         "su", "unprivileged", "-c",
                          "timeout 20s {}".format(
                             os.path.join(tmpdir, os.path.basename(main)))],
                         stdout=sys.stdout)
