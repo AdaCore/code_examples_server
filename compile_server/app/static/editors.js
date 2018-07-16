@@ -5,6 +5,11 @@ function output_error(output_area, message) {
     div.appendTo(output_area)
 }
 
+// Reset the buttons on the editors to the "enabled" state
+function reset_buttons(editors){
+   editors.buttons.forEach(function(b){b.disabled = false;})
+}
+
 // Process the result of a check
 //  editors: the editors to decorate
 //  output_area: the div where the messages should go
@@ -70,6 +75,8 @@ function process_check_output(editors, output_area, output, status, completed, m
 
     // Congratulations!
     if (completed) {
+        reset_buttons(editors);
+
         if (status != 0) {
             output_error(output_area, "exit status: " + status)
         } else if (output_area.error_count == 0) {
@@ -121,6 +128,7 @@ function get_output_from_identifier(container, editors, output_area, identifier,
             console.dir(xhr);
         })
         .fail(function (json) {
+            reset_buttons(editors);
             output_error(output_area, json.message)
         })
 }
@@ -167,6 +175,7 @@ function query_operation_result(container, example_name, editors, output_area, o
         })
         .done(function (json) {
             if (json.identifier == "") {
+                reset_buttons(editors)
                 output_error(output_area, json.message)
             } else {
                 get_output_from_identifier(container, editors, output_area, json.identifier, 0)
@@ -337,10 +346,15 @@ function fill_editor_from_contents(container, example_name, example_server,
    var output_area = $('<div class="output_area">')
    output_area.appendTo(output_div)
 
+   editors.buttons = []
+
    if (container.attr("prove_button") || container.attr("run_button")){
       var reset_button = $('<button type="button" class="btn btn-secondary">').text("Reset").appendTo(buttons_div)
       reset_button.editors = editors;
+      editors.buttons.push(reset_button)
       reset_button.on('click', function (x) {
+          if (reset_button.disabled) {return;}
+          editors.buttons.forEach(function(b){b.disabled = false;})
           output_area.empty();
           output_area.error_count = 0;
 
@@ -360,8 +374,11 @@ function fill_editor_from_contents(container, example_name, example_server,
       }
 
       var check_button = $('<button type="button" class="btn btn-primary">').text(the_text).appendTo(buttons_div)
+      editors.buttons.push(check_button);
       check_button.editors = editors;
       check_button.on('click', function (x) {
+          if (check_button.disabled) {return;}
+          editors.buttons.forEach(function(b){b.disabled = true;})
           output_area.empty();
           output_area.error_count = 0;
 
@@ -374,15 +391,18 @@ function fill_editor_from_contents(container, example_name, example_server,
 
    if (container.attr("run_button")){
        var run_button = $('<button type="button" class="btn btn-primary">').text("Run").appendTo(buttons_div);
+       editors.buttons.push(run_button);
        run_button.editors = editors;
        run_button.on('click', function (x) {
-           output_area.empty();
-           output_area.error_count = 0;
+          if (run_button.disabled) {return;}
+          editors.buttons.forEach(function(b){b.disabled = true;})
+          output_area.empty();
+          output_area.error_count = 0;
 
-           var div = $('<div class="output_info">');
-           div.text("Running...");
-           div.appendTo(output_area);
-           query_operation_result(container, example_name, run_button.editors, output_area, "/run_program/");
+          var div = $('<div class="output_info">');
+          div.text("Running...");
+          div.appendTo(output_area);
+          query_operation_result(container, example_name, run_button.editors, output_area, "/run_program/");
        })
    }
 }
