@@ -42,7 +42,8 @@ def safe_run(main):
         # Run it, printint output to stdout as we go along
         subprocess.call(["lxc", "exec", CONT, "--",
                          "su", "ubuntu", "-c",
-                         os.path.join(tmpdir, os.path.basename(main))],
+                         "timeout 20s {}".format(
+                            os.path.join(tmpdir, os.path.basename(main)))],
                         stdout=sys.stdout)
     except E:
         print sys.exc_info()
