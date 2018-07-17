@@ -6,8 +6,10 @@ function output_error(output_area, message) {
 }
 
 // Reset the buttons on the editors to the "enabled" state
-function reset_buttons(editors){
+// Reset the count of lines already read to 0
+function reset(container, editors){
    editors.buttons.forEach(function(b){b.disabled = false;})
+   container.already_read = 0;
 }
 
 // Process the result of a check
@@ -16,10 +18,10 @@ function reset_buttons(editors){
 //  status: the exit status
 //  message: any message coming back from the application
 //   TODO: make use of message
-function process_check_output(editors, output_area, output, status, completed, message) {
+function process_check_output(container, editors, output_area, output, status, completed, message) {
     // Process the lines
 
-    read_lines = 0
+    var read_lines = 0
 
     output.forEach(function (l) {
         read_lines++
@@ -75,7 +77,7 @@ function process_check_output(editors, output_area, output, status, completed, m
 
     // Congratulations!
     if (completed) {
-        reset_buttons(editors);
+        reset(container, editors);
 
         if (status != 0) {
             output_error(output_area, "exit status: " + status)
@@ -97,10 +99,10 @@ function process_check_output(editors, output_area, output, status, completed, m
     return read_lines
 }
 
-function get_output_from_identifier(container, editors, output_area, identifier, already_read) {
+function get_output_from_identifier(container, editors, output_area, identifier) {
     data = {
         "identifier": identifier,
-        "already_read": already_read
+        "already_read": container.already_read
     }
     $.ajax({
             url: container.example_server + "/check_output/",
@@ -111,13 +113,15 @@ function get_output_from_identifier(container, editors, output_area, identifier,
         })
         .done(function (json) {
             read_lines = process_check_output(
+                container,
                 editors, output_area,
                 json.output_lines, json.status, json.completed, json.message
             )
+            container.already_read = container.already_read + read_lines
             if (!json.completed) {
                 // We have not finished processing the output: call this again
                 setTimeout(function () {
-                    get_output_from_identifier(container, editors, output_area, identifier, already_read + read_lines)
+                    get_output_from_identifier(container, editors, output_area, identifier)
                 }, 250)
             }
         })
@@ -128,7 +132,7 @@ function get_output_from_identifier(container, editors, output_area, identifier,
             console.dir(xhr);
         })
         .fail(function (json) {
-            reset_buttons(editors);
+            reset(container,editors);
             output_error(output_area, json.message)
         })
 }
@@ -175,10 +179,10 @@ function query_operation_result(container, example_name, editors, output_area, o
         })
         .done(function (json) {
             if (json.identifier == "") {
-                reset_buttons(editors)
+                reset(container, editors)
                 output_error(output_area, json.message)
             } else {
-                get_output_from_identifier(container, editors, output_area, json.identifier, 0)
+                get_output_from_identifier(container, editors, output_area, json.identifier)
             }
         })
         .fail(function (xhr, status, errorThrown) {
@@ -355,6 +359,7 @@ function fill_editor_from_contents(container, example_name, example_server,
       reset_button.on('click', function (x) {
           if (reset_button.disabled) {return;}
           editors.buttons.forEach(function(b){b.disabled = false;})
+          container.already_read = 0;
           output_area.empty();
           output_area.error_count = 0;
 
@@ -410,6 +415,7 @@ function fill_editor_from_contents(container, example_name, example_server,
 function fill_editor(container, example_name, example_server) {
     unique_id++;
     container.attr("the_id", unique_id);
+    container.already_read = 0;  // The number of lines already read
     container.example_server = example_server;
 
     is_inline = container.attr("inline");
