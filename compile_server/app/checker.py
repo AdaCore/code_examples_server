@@ -12,7 +12,7 @@ import tempfile
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
-from compile_server.app.models import Resource, Example
+from compile_server.app.models import Resource, Example, ProgramRun
 from compile_server.app import process_handling
 from compile_server.app.views import CrossDomainResponse
 
@@ -23,6 +23,8 @@ ALLOWED_EXTRA_ARGS = {'spark-flow': "--mode=flow",
 # We maintain a list of extra arguments that can be passed to the command
 # line. For security we don't want the user to pass arguments as-is.
 
+PROCESSES_LIMIT = 300  # The limit of processes that can be running
+
 
 def check_gnatprove():
     """Check that gnatprove is found on the PATH"""
@@ -32,6 +34,16 @@ def check_gnatprove():
         return True
     gnatprove_found = distutils.spawn.find_executable("gnatprove")
     return gnatprove_found
+
+
+def resources_available():
+    """Return whether we have enough resources on the machine"""
+    if len(ProgramRun.objects.all()) > PROCESSES_LIMIT:
+        # We're over the limit: first attempt a cleanup
+        process_handling.cleanup_old_processes()
+        return len(ProgramRun.objects.all()) <= PROCESSES_LIMIT
+    else:
+        return True
 
 
 @api_view(['POST'])
@@ -146,6 +158,12 @@ def check_program(request):
         return CrossDomainResponse(
             {'identifier': '', 'message': "example not found"})
 
+    # Check whether we have too many processes running
+    if not resources_available():
+        return CrossDomainResponse(
+            {'identifier': '',
+             'message': "the machine is busy processing too many requests"})
+
     tempd = prep_example_directory(e, received_json)
 
     main = get_main(received_json)
@@ -196,6 +214,12 @@ def run_program(request):
         return CrossDomainResponse(
             {'identifier': '', 'message': "main not specified"})
 
+    # Check whether we have too many processes running
+    if not resources_available():
+        return CrossDomainResponse(
+            {'identifier': '',
+             'message': "the machine is busy processing too many requests"})
+
     doctor_main_gpr(tempd, main)
 
     # Run the command(s) to check the program
@@ -212,6 +236,8 @@ def run_program(request):
 
     try:
         p = process_handling.SeparateProcess(commands, tempd)
+        stored_run = ProgramRun(working_dir=p.working_dir)
+        stored_run.save()
         message = "running gnatprove"
 
     except subprocess.CalledProcessError, exception:

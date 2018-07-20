@@ -48,3 +48,10 @@ class Example(models.Model):
 
     # An example is a contains a set of resources
     resources = models.ManyToManyField(Resource)
+
+
+class ProgramRun(models.Model):
+    """Represents programs currently being run"""
+
+    working_dir = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)

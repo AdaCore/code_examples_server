@@ -14,8 +14,10 @@ import shutil
 import sys
 import subprocess
 import time
+import psutil
 from threading import Thread
 from Queue import Queue, Empty
+from compile_server.app.models import ProgramRun
 
 
 TIMEOUT_SECONDS = 30
@@ -34,6 +36,7 @@ class SeparateProcess(object):
         self.cmd_lines = cmd_lines
         self.q = Queue()
         self.working_dir = cwd
+        self.interrupted = False  # Whether we interrupted forcefully
         self.output_file = os.path.join(self.working_dir, 'output.txt')
         self.status_file = os.path.join(self.working_dir, 'status.txt')
         with open(self.status_file, 'wb') as f:
@@ -55,10 +58,21 @@ class SeparateProcess(object):
 
         while self.processes_running:
             if time.time() - self.time > TIMEOUT_SECONDS:
+                self.interrupted = True
                 with open(self.output_file, 'ab') as f:
                     f.write("<interrupted after timeout>")
-                # The current process took too long, kill it
-                self.p.kill()
+                with open(self.status_file, 'wb') as f:
+                    f.write("-1")
+                # The current process took too long, kill it, first with
+                # sigabort, then with sigkill
+                try:
+                    self.p.kill()
+                    time.sleep(0.01)
+                    os.kill(self.p.pid, 9)
+                except OSError:
+                    pass
+                return
+
             time.sleep(1.0)
 
     def _enqueue_output(self):
@@ -77,6 +91,8 @@ class SeparateProcess(object):
 
             # Write the output line by line in the output file
             for line in iter(self.p.stdout.readline, b''):
+                if self.interrupted:
+                    return
                 with open(self.output_file, 'ab') as f:
                     f.write(line)
 
@@ -91,6 +107,7 @@ class SeparateProcess(object):
             if returncode != 0:
                 break
 
+        # Write the last return code in the status file
         with open(self.status_file, 'wb') as f:
             f.write(str(returncode))
 
@@ -146,3 +163,14 @@ class ProcessReader(object):
             lines = f.readlines()
 
         return lines[already_read:]
+
+
+def cleanup_old_processes():
+    """Cleanup the list of running processes"""
+    for a in ProgramRun.objects.all():
+        print a.timestamp, a.working_dir
+        # Remove from the database all the processes where the working dir does
+        # no longer exist
+        if not os.path.exists(a.working_dir):
+            print "deleting because dir has been cleared", a.working_dir
+            a.delete()
