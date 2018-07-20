@@ -40,7 +40,7 @@ def safe_run(main):
         # Run it, printint output to stdout as we go along
         subprocess.call(["lxc", "exec", CONT, "--",
                          "su", "unprivileged", "-c",
-                         "timeout 20s {}".format(
+                         "timeout 20s {} || echo '<interrupted>'".format(
                             os.path.join(tmpdir, os.path.basename(main)))],
                         stdout=sys.stdout)
     except E:
