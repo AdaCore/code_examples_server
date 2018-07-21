@@ -23,6 +23,9 @@ from compile_server.app.models import ProgramRun
 TIMEOUT_SECONDS = 30
 # Number of seconds to allow to a process
 
+MAX_SESSION_AGE = 60
+# Number of seconds after which to remove a session from memory
+
 
 class SeparateProcess(object):
 
@@ -168,9 +171,17 @@ class ProcessReader(object):
 def cleanup_old_processes():
     """Cleanup the list of running processes"""
     for a in ProgramRun.objects.all():
-        print a.timestamp, a.working_dir
+        # Uncomment this to print the running sessions
+        # print "running:", a.timestamp, a.working_dir
+
         # Remove from the database all the processes where the working dir does
         # no longer exist
-        if not os.path.exists(a.working_dir):
-            print "deleting because dir has been cleared", a.working_dir
+        now = time.time()
+        if os.path.exists(a.working_dir):
+            if now - os.path.getctime(a.working_dir) > MAX_SESSION_AGE:
+                print "deleting dir because it is too old:", a.working_dir
+                shutil.rmtree(a.working_dir)
+                a.delete()
+        else:
+            print "deleting because dir has been cleared:", a.working_dir
             a.delete()
