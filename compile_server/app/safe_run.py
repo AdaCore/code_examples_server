@@ -43,7 +43,7 @@ def safe_run(main):
                          "timeout 20s {} || echo '<interrupted>'".format(
                             os.path.join(tmpdir, os.path.basename(main)))],
                         stdout=sys.stdout)
-    except E:
+    except Exception:
         print sys.exc_info()
 
     finally:
