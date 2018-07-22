@@ -25,6 +25,9 @@ ALLOWED_EXTRA_ARGS = {'spark-flow': "--mode=flow",
 
 PROCESSES_LIMIT = 300  # The limit of processes that can be running
 
+RECEIVED_FILE_CHAR_LIMIT = 50 * 1000
+# The limit in number of characters of files to accept
+
 
 def check_gnatprove():
     """Check that gnatprove is found on the PATH"""
@@ -87,7 +90,9 @@ def get_example(received_json):
 
 def prep_example_directory(example, received_json):
     """Prepare the directory in which the example can be run.
-       Return the name of the directory created.
+       Return a tuple with
+          - the name of the directory created if it exists
+          - the error message if not
     """
     # Create a temporary directory
     tempd = tempfile.mkdtemp()
@@ -99,11 +104,14 @@ def prep_example_directory(example, received_json):
 
     # Overwrite with the user-contributed files
     for file in received_json['files']:
+        if len(file['contents']) > RECEIVED_FILE_CHAR_LIMIT:
+            shutil.rmtree(tempd)
+            return (None, "file contents exceeds size limits")
         with codecs.open(os.path.join(tempd, file['basename']),
                          'w', 'utf-8') as f:
             f.write(file['contents'])
 
-    return tempd
+    return (tempd, None)
 
 
 def get_main(received_json):
@@ -164,7 +172,9 @@ def check_program(request):
             {'identifier': '',
              'message': "the machine is busy processing too many requests"})
 
-    tempd = prep_example_directory(e, received_json)
+    tempd, message = prep_example_directory(e, received_json)
+    if message:
+        return CrossDomainResponse({'identifier': '', 'message': message})
 
     main = get_main(received_json)
     doctor_main_gpr(tempd, main, True)
@@ -207,7 +217,10 @@ def run_program(request):
         return CrossDomainResponse(
             {'identifier': '', 'message': "example not found"})
 
-    tempd = prep_example_directory(e, received_json)
+    tempd, message = prep_example_directory(e, received_json)
+    if message:
+        return CrossDomainResponse({'identifier': '', 'message': message})
+
     main = get_main(received_json)
 
     if not main:

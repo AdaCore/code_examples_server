@@ -15,6 +15,7 @@ import sys
 import subprocess
 import time
 import psutil
+import shutil
 from threading import Thread
 from Queue import Queue, Empty
 from compile_server.app.models import ProgramRun
