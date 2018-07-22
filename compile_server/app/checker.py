@@ -28,6 +28,22 @@ PROCESSES_LIMIT = 300  # The limit of processes that can be running
 RECEIVED_FILE_CHAR_LIMIT = 50 * 1000
 # The limit in number of characters of files to accept
 
+COMMON_ADC = """
+pragma Restrictions (No_Specification_of_Aspect => Import);
+pragma Restrictions (No_Use_Of_Pragma => Import);
+pragma Restrictions (No_Dependence => System.Machine_Code);
+pragma Restrictions (No_Dependence => Machine_Code);
+"""
+
+SPARK_ADC = """
+pragma Profile(GNAT_Extended_Ravenscar);
+pragma Partition_Elaboration_Policy(Sequential);
+pragma SPARK_Mode (On);
+pragma Warnings (Off, "no Global contract available");
+pragma Warnings (Off, "subprogram * has no effect");
+pragma Warnings (Off, "file name does not match");
+"""
+
 
 def check_gnatprove():
     """Check that gnatprove is found on the PATH"""
@@ -142,13 +158,16 @@ def doctor_main_gpr(tempd, main="", spark_mode=False):
             "--MAIN_PLACEHOLDER--",
             'for Main use ("{}");'.format(main))
 
-    if spark_mode:
-        project_str = project_str.replace(
-            "--ADC_PLACEHOLDER--",
-            'for Global_Configuration_Pragmas use "spark.adc";')
-
     with codecs.open(project_file, "wb", encoding="utf-8") as f:
         f.write(project_str)
+
+    # Create the main.adc file
+    adc_file = os.path.join(tempd, "main.adc")
+    contents = COMMON_ADC
+    if spark_mode:
+        contents += '\n' + SPARK_ADC
+    with open(adc_file, "wb") as f:
+        f.write(contents)
 
 
 @api_view(['POST'])
