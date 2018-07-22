@@ -15,10 +15,10 @@ import sys
 import subprocess
 import time
 import psutil
-import shutil
 from threading import Thread
 from Queue import Queue, Empty
 from compile_server.app.models import ProgramRun
+from safe_run import INTERRUPT_STRING
 
 
 TIMEOUT_SECONDS = 30
@@ -126,6 +126,7 @@ class ProcessReader(object):
         self.working_dir = working_dir
         self.output_file = os.path.join(self.working_dir, 'output.txt')
         self.status_file = os.path.join(self.working_dir, 'status.txt')
+        self.interrupt_detected = False
 
     def poll(self):
         """ Check whether the process is still running.
@@ -147,6 +148,8 @@ class ProcessReader(object):
         else:
             # When all the processes are completed, remove the working dir
             shutil.rmtree(self.working_dir)
+            if self.interrupt_detected:
+                return 1
             return int(status_text)
 
     def read_lines(self, already_read=0):
@@ -163,8 +166,14 @@ class ProcessReader(object):
         if not os.path.isfile(self.output_file):
             return []
 
+        lines = []
         with open(self.output_file, "rb") as f:
-            lines = f.readlines()
+            for x in f.readlines():
+                # Doctor: remove the mentions of working dir from output
+                lines.append(x.replace(self.working_dir, '.'))
+
+                if x.strip() == INTERRUPT_STRING:
+                    self.interrupt_detected = True
 
         return lines[already_read:]
 
