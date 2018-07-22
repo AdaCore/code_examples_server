@@ -11,6 +11,7 @@ import sys
 import subprocess
 
 CONT = 'safecontainer'
+INTERRUPT_STRING = '<interrupted>'
 DEBUG = False
 
 
@@ -40,8 +41,10 @@ def safe_run(main):
         # Run it, printint output to stdout as we go along
         subprocess.call(["lxc", "exec", CONT, "--",
                          "su", "unprivileged", "-c",
-                         "timeout 20s {} || echo '<interrupted>'".format(
-                            os.path.join(tmpdir, os.path.basename(main)))],
+                         ('timeout 10s bash -c "LD_PRELOAD=/preloader.so {}" '
+                          '|| echo "{}"').format(
+                              os.path.join(tmpdir, os.path.basename(main)),
+                              INTERRUPT_STRING)],
                         stdout=sys.stdout)
     except Exception:
         print sys.exc_info()
