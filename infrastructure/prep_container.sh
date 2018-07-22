@@ -7,5 +7,5 @@ lxc exec safecontainer -- chmod 755 /tmp/
 lxc exec safecontainer -- ifconfig eth0 down
 
 # Build the preloader and install it on the container
-gcc -shared -o preloader.so -fPIC preloader.c
-lxc file push preloader.so safecontainer/
+gcc -shared -o /tmp/preloader.so -fPIC preloader.c
+lxc file push /tmp/preloader.so safecontainer/
