@@ -31,6 +31,7 @@ RECEIVED_FILE_CHAR_LIMIT = 50 * 1000
 COMMON_ADC = """
 pragma Restrictions (No_Specification_of_Aspect => Import);
 pragma Restrictions (No_Use_Of_Pragma => Import);
+pragma Restrictions (No_Use_Of_Pragma => Interface);
 pragma Restrictions (No_Dependence => System.Machine_Code);
 pragma Restrictions (No_Dependence => Machine_Code);
 """
