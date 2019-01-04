@@ -13,4 +13,7 @@ sources:
     - repo: templates
       examples:
         - simple_main
+        - ada_main
+        - spark_main
+        - inline_code
 ...
