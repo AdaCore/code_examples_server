@@ -1,12 +1,13 @@
 project langserv is
 
-   for Languages use ("Python", "Text", "HTML", "javascript", "css");
+   for Languages use ("Python", "Text", "HTML", "javascript", "css", "ReST");
 
    package Naming is
       for Implementation_Suffix ("Text") use ".txt";
-      for Implementation_Suffix ("HTML") use ".txt";
+      for Implementation_Suffix ("HTML") use ".html";
       for Implementation_Suffix ("javascript") use ".js";
       for Implementation_Suffix ("css") use ".css";
+      for Implementation_Suffix ("ReST") use ".rst";
    end Naming;
 
    for Source_Dirs use (--  The django base
@@ -26,7 +27,15 @@ project langserv is
                         "compile_server/app/static/",
 
                         -- The HTML templates
-                        "compile_server/app/templates/**"
+                        "compile_server/app/templates/**",
+
+                        -- The learn engine
+                        "../learn/engine/sphinx",
+
+                        --  The courses, books, labs
+                        "../learn/courses/**",
+                        "../learn/books/**",
+                        "../learn/labs/**"
                        );
 
 
