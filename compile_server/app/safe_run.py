@@ -26,7 +26,7 @@ def run(command):
     return output
 
 
-def safe_run(main):
+def safe_run(main, mode):
     # Make a temporary directory on the container
     tmpdir = run(["mktemp", "-d"])
 
@@ -59,9 +59,10 @@ if __name__ == '__main__':
     # Do not perform any sanity checking on args - this is not meant to
     # be launched interactively
     main = sys.argv[1]
+    mode = sys.argv[2]
 
     # lxc commands require a HOME - but this might not be set by nginx:
     # do this here in this case
     if "HOME" not in os.environ:
         os.environ["HOME"] = "/home/compile_server"
-    safe_run(main)
+    safe_run(main, mode)

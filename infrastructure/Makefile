@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-all: create_container setup_container protect_container
+all: create_container setup_container push_payload
 
 destroy_container:
 	lxc list | grep safecontainer && lxc delete --force safecontainer || true
@@ -16,13 +16,9 @@ setup_container:
 	# install this first!
 	lxc exec safecontainer -- apt install make
 
+push_payload:
         # push the payload
-	tar cf - container_payload/ | lxc exec safecontainer tar xf -
+	lxc file push --recursive container_payload/ safecontainer/root/
 
 	# run the makefile on the container
 	lxc exec safecontainer -- bash -c "cd /root/container_payload ; make -f Makefile.safecontainer"
-
-protect_container:
-	# Prevent the container from having internet access
-	lxc exec safecontainer -- bash -c "cd /root/container_payload ; make -f Makefile.safecontainer protect"
-

@@ -1,5 +1,33 @@
 # -*- coding: utf-8 -*-
+"""
+    Architecture of the server:
 
+    --> The server (this file) collects the user input coming in from the
+        website, and packages this into a directory corresponding to the
+        session, for instance
+            /tmp/123456
+
+        and then launches:
+
+             run.py <path_to_session_dir> <mode>
+
+        This program takes care of:
+            - doctoring the package according to the mode
+            - transmitting it to the container
+            - running the necessary commands
+
+    On the container:
+        Files:
+            /gnat          <- where GNAT Community gets installed
+            /workspace     <- the root of the workspaces
+                /sessions  <- one directory per session, here
+
+        Special users:
+            * "unprivileged": used to run user-provided programs,
+                              has write access nowhere
+            * "runner": used to run programs, has write access to
+                        /workspace/sessions and /tmp
+"""
 import glob
 import os
 import codecs
@@ -228,9 +256,6 @@ def check_program(request):
 
 @api_view(['POST'])
 def run_program(request):
-
-    # Sanity check for the existence of gnatprove
-
     received_json = json.loads(request.body)
     e = get_example(received_json)
     if not e:
@@ -242,6 +267,7 @@ def run_program(request):
         return CrossDomainResponse({'identifier': '', 'message': message})
 
     main = get_main(received_json)
+    mode = "run"  # TODO
 
     if not main:
         return CrossDomainResponse(
@@ -257,15 +283,18 @@ def run_program(request):
 
     # Run the command(s) to check the program
     commands = [
-                # Build the program
-                ["gprbuild", "-q", "-P", "main"],
-                # Launch the program via "safe_run", to sandbox it
-                ["python",
-                 os.path.join(os.path.dirname(__file__), 'safe_run.py'),
-                 os.path.join(tempd, main[:-4])],
-               ]
+        # Copy the program over
+        ["lxc", "file", "push", "--recursive", tempd,
+         "safecontainer/workspace/sessions/"],
 
-    print commands
+        # Run it
+        ["lxc", "exec", "safecontainer", "--", "su", "runner",
+         "-c",
+         "python /workspace/run.py /workspace/sessions/{} {} {}".format(
+            os.path.basename(tempd), mode, main)]
+    ]
+
+    print "\n".join(" ".join(c) for c in commands)
 
     try:
         p = process_handling.SeparateProcess(commands, tempd)
