@@ -33,6 +33,9 @@ protect:
 	mkdir -p /home/unprivileged
 	chown unprivileged /home/unprivileged
 
+	# Allow runner to run unprivileged
+	echo "runner ALL=(unprivileged) NOPASSWD:ALL" > /etc/sudoers.d/runner
+
 	# Prevent unprivileged from writing to /tmp
 	chmod 775 /tmp
 	chmod 775 /var/tmp

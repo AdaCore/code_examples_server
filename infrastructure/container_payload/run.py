@@ -15,7 +15,8 @@ import traceback
 
 CONT = 'safecontainer'
 INTERRUPT_STRING = '<interrupted>'
-DEBUG = True
+INTERRUPT_RETURNCODE = 124
+DEBUG = False
 
 
 def run(command):
@@ -30,27 +31,36 @@ def run(command):
 
 
 def safe_run(workdir, mode, main):
-    def c(cl):
+    def c(cl=[]):
         """Aux procedure, run the given command line and output to stdout"""
         try:
             if DEBUG:
                 print "running: {}".format(cl)
-            subprocess.call(cl, cwd=workdir, stdout=sys.stdout, shell=True)
+            returncode = subprocess.call(cl, cwd=workdir,
+                                         stdout=sys.stdout, shell=False)
+            if returncode == INTERRUPT_RETURNCODE:
+                print INTERRUPT_STRING
             return True
         except Exception:
             print "ERROR when running {}".format(' '.join(cl))
             traceback.print_exc()
             return False
 
-    c(["echo", workdir, mode, main])
+    c(["echo"])
     try:
         if mode == "run":
+            # In "run" mode, first build, and then launch the main
             if c(["gprbuild", "-q", "-P", "main"]):
                 if main:
-                    line = 'timeout 10s bash -c "LD_PRELOAD=/preloader.so {}" || echo {}'.format(
-                              os.path.join(workdir, main.split('.')[0]),
-                              INTERRUPT_STRING)
-                    c([line])
+                    # We run:
+                    #  - as user 'unprivileged' that has no write access
+                    #  - under a timeout
+                    #  - with our ld preloader to prevent forks
+                    line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
+                            'bash', '-c',
+                            'LD_PRELOAD=/preloader.so {}'.format(
+                              os.path.join(workdir, main.split('.')[0]))]
+                    c(line)
 
     except Exception:
         traceback.print_exc()
@@ -70,6 +80,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 3:
         main = sys.argv[3]
 
+    # This is where the compiler is installed
     os.environ["PATH"] = "/gnat/bin:{}".format(os.environ["PATH"])
 
     safe_run(workdir, mode, main)

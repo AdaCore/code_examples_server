@@ -281,13 +281,22 @@ def run_program(request):
 
     doctor_main_gpr(tempd, main)
 
+    # Push the code to the container
+
+    try:
+        subprocess.check_call(["lxc", "file", "push", "--recursive", tempd,
+                               "safecontainer/workspace/sessions/"])
+        subprocess.check_call(["lxc", "exec", "safecontainer", "--",
+                               "chmod", "-R", "a+rx",
+                               "/workspace/sessions/{}".format
+                               (os.path.basename(tempd))])
+    except subprocess.CalledProcessError, exception:
+        result = {'message': "error transferring the program"}
+        return CrossDomainResponse(result)
+
     # Run the command(s) to check the program
     commands = [
-        # Copy the program over
-        ["lxc", "file", "push", "--recursive", tempd,
-         "safecontainer/workspace/sessions/"],
-
-        # Run it
+        # Run the program
         ["lxc", "exec", "safecontainer", "--", "su", "runner",
          "-c",
          "python /workspace/run.py /workspace/sessions/{} {} {}".format(
