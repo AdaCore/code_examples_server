@@ -32,6 +32,7 @@ project langserv is
                         "../learn/engine/sphinx",
 
                         --  The courses, books, labs
+                        "../learn/",
                         "../learn/courses/**",
                         "../learn/books/**",
                         "../learn/labs/**",
