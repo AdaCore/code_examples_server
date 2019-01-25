@@ -56,23 +56,6 @@ PROCESSES_LIMIT = 300  # The limit of processes that can be running
 RECEIVED_FILE_CHAR_LIMIT = 50 * 1000
 # The limit in number of characters of files to accept
 
-COMMON_ADC = """
-pragma Restrictions (No_Specification_of_Aspect => Import);
-pragma Restrictions (No_Use_Of_Pragma => Import);
-pragma Restrictions (No_Use_Of_Pragma => Interface);
-pragma Restrictions (No_Dependence => System.Machine_Code);
-pragma Restrictions (No_Dependence => Machine_Code);
-"""
-
-SPARK_ADC = """
-pragma Profile(GNAT_Extended_Ravenscar);
-pragma Partition_Elaboration_Policy(Sequential);
-pragma SPARK_Mode (On);
-pragma Warnings (Off, "no Global contract available");
-pragma Warnings (Off, "subprogram * has no effect");
-pragma Warnings (Off, "file name does not match");
-"""
-
 
 def check_gnatprove():
     """Check that gnatprove is found on the PATH"""
@@ -159,46 +142,6 @@ def prep_example_directory(example, received_json):
     return (tempd, None)
 
 
-def get_main(received_json):
-    """Retrieve the main information from the json"""
-
-    # Figure out which is the main
-    if 'main' not in received_json:
-        return None
-
-    return received_json['main']
-
-
-def doctor_main_gpr(tempd, main="", spark_mode=False):
-    """Doctor the main.gpr to replace the placeholder with the name of the
-       main, and the .adc configuration file for SPARK.
-
-       See template "inline_code".
-    """
-    # In the temporary directory, doctor the project file to know about the
-    # main.
-
-    project_file = os.path.join(tempd, "main.gpr")
-    with codecs.open(project_file, "rb", encoding="utf-8") as f:
-        project_str = f.read()
-
-    if main:
-        project_str = project_str.replace(
-            "--MAIN_PLACEHOLDER--",
-            'for Main use ("{}");'.format(main))
-
-    with codecs.open(project_file, "wb", encoding="utf-8") as f:
-        f.write(project_str)
-
-    # Create the main.adc file
-    adc_file = os.path.join(tempd, "main.adc")
-    contents = COMMON_ADC
-    if spark_mode:
-        contents += '\n' + SPARK_ADC
-    with open(adc_file, "wb") as f:
-        f.write(contents)
-
-
 @api_view(['POST'])
 def check_program(request):
 
@@ -224,7 +167,6 @@ def check_program(request):
     if message:
         return CrossDomainResponse({'identifier': '', 'message': message})
 
-    main = get_main(received_json)
     doctor_main_gpr(tempd, main, True)
 
     # Run the command(s) to check the program
@@ -266,20 +208,13 @@ def run_program(request):
     if message:
         return CrossDomainResponse({'identifier': '', 'message': message})
 
-    main = get_main(received_json)
     mode = "run"  # TODO
-
-    if not main:
-        return CrossDomainResponse(
-            {'identifier': '', 'message': "main not specified"})
 
     # Check whether we have too many processes running
     if not resources_available():
         return CrossDomainResponse(
             {'identifier': '',
              'message': "the machine is busy processing too many requests"})
-
-    doctor_main_gpr(tempd, main)
 
     # Push the code to the container
 
@@ -299,8 +234,8 @@ def run_program(request):
         # Run the program
         ["lxc", "exec", "safecontainer", "--", "su", "runner",
          "-c",
-         "python /workspace/run.py /workspace/sessions/{} {} {}".format(
-            os.path.basename(tempd), mode, main)]
+         "python /workspace/run.py /workspace/sessions/{} {}".format(
+            os.path.basename(tempd), mode)]
     ]
 
     print "\n".join(" ".join(c) for c in commands)
