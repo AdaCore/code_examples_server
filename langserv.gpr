@@ -30,6 +30,7 @@ project langserv is
 
                         -- The learn engine
                         "../learn/engine/sphinx",
+                        "../learn/engine/sphinx/learn_theme/static/js/",
 
                         --  The courses, books, labs
                         "../learn/",
