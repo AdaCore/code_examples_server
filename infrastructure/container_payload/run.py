@@ -80,6 +80,26 @@ def doctor_main_gpr(tempd, main="", spark_mode=False):
         f.write(contents)
 
 
+def extract_main(workdir):
+    """Return the main if it is found in workdir, empty string otherwise"""
+    # Current heuristics for finding the main:
+    # find the .adb that doesn't have a .ads.
+
+    names = [os.path.basename(f)
+             for f in glob.glob(os.path.join(workdir, "*.ad[sb]"))]
+    bases = set([b[:-4] for b in names])
+    mains = [b for b in bases if b + '.ads' not in names]
+    if mains:
+        main = mains[-1]
+        if DEBUG and len(mains) > 1:
+            print "multiple mains found"
+        return main
+    else:
+        if DEBUG:
+            print "No main found"
+        return ''
+
+
 def safe_run(workdir, mode):
     def c(cl=[]):
         """Aux procedure, run the given command line and output to stdout"""
@@ -99,20 +119,7 @@ def safe_run(workdir, mode):
     c(["echo"])
     try:
         if mode == "run":
-            # Current heuristics for finding the main:
-            # find the .adb that doesn't have a .ads.
-            names = [os.path.basename(f)
-                     for f in glob.glob(os.path.join(workdir, "*.ad[sb]"))]
-            bases = set([b[:-4] for b in names])
-            mains = [b for b in bases if b + '.ads' not in names]
-            if mains:
-                main = mains[-1]
-                if DEBUG and len(mains) > 1:
-                    print "multiple mains found"
-            else:
-                print "No main found"
-
-            # Doctor the gpr to put the name of the main in there
+            main = extract_main(workdir)
             doctor_main_gpr(workdir, main, False)
 
             # In "run" mode, first build, and then launch the main
@@ -126,6 +133,15 @@ def safe_run(workdir, mode):
                         'LD_PRELOAD=/preloader.so {}'.format(
                           os.path.join(workdir, main.split('.')[0]))]
                 c(line)
+
+        elif mode == "prove":
+            main = extract_main(workdir)
+            doctor_main_gpr(workdir, main, spark_mode=True)
+            line = ["gnatprove", "-P", "main", "--checks-as-errors",
+                    "--level=0", "--no-axiom-guard"]
+            c(line)
+        else:
+            print "mode not implemented"
 
     except Exception:
         traceback.print_exc()

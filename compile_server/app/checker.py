@@ -107,10 +107,10 @@ def check_output(request):
                                     'message': "completed"})
 
 
-def get_example(received_json):
+def get_example():
     """Return the example found in the received json, if any"""
 
-    matches = Example.objects.filter(name=received_json['example_name'])
+    matches = Example.objects.filter(name="Inline Code")
     if not matches:
         return None
     return matches[0]
@@ -152,7 +152,7 @@ def check_program(request):
             {'identifier': '', 'message': "gnatprove not found"})
 
     received_json = json.loads(request.body)
-    e = get_example(received_json)
+    e = get_example()
     if not e:
         return CrossDomainResponse(
             {'identifier': '', 'message': "example not found"})
@@ -199,7 +199,7 @@ def check_program(request):
 @api_view(['POST'])
 def run_program(request):
     received_json = json.loads(request.body)
-    e = get_example(received_json)
+    e = get_example()
     if not e:
         return CrossDomainResponse(
             {'identifier': '', 'message': "example not found"})
@@ -208,7 +208,8 @@ def run_program(request):
     if message:
         return CrossDomainResponse({'identifier': '', 'message': message})
 
-    mode = "run"  # TODO
+    print received_json
+    mode = received_json['mode']
 
     # Check whether we have too many processes running
     if not resources_available():
