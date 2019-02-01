@@ -222,6 +222,10 @@ def run_program(request):
         subprocess.check_call(["lxc", "file", "push", "--recursive", tempd,
                                "safecontainer/workspace/sessions/"])
         subprocess.check_call(["lxc", "exec", "safecontainer", "--",
+                               "chown", "-R", "runner",
+                               "/workspace/sessions/{}".format
+                               (os.path.basename(tempd))])
+        subprocess.check_call(["lxc", "exec", "safecontainer", "--",
                                "chmod", "-R", "a+rx",
                                "/workspace/sessions/{}".format
                                (os.path.basename(tempd))])
