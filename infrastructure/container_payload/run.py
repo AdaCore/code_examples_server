@@ -106,27 +106,26 @@ def safe_run(workdir, mode):
             bases = set([b[:-4] for b in names])
             mains = [b for b in bases if b + '.ads' not in names]
             if mains:
-                main = mains[0]
+                main = mains[-1]
                 if DEBUG and len(mains) > 1:
                     print "multiple mains found"
+            else:
+                print "No main found"
 
             # Doctor the gpr to put the name of the main in there
             doctor_main_gpr(workdir, main, False)
 
             # In "run" mode, first build, and then launch the main
             if c(["gprbuild", "-q", "-P", "main"]):
-                main = None
-
-                for main in mains:
-                    # We run:
-                    #  - as user 'unprivileged' that has no write access
-                    #  - under a timeout
-                    #  - with our ld preloader to prevent forks
-                    line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
-                            'bash', '-c',
-                            'LD_PRELOAD=/preloader.so {}'.format(
-                              os.path.join(workdir, main.split('.')[0]))]
-                    c(line)
+                # We run:
+                #  - as user 'unprivileged' that has no write access
+                #  - under a timeout
+                #  - with our ld preloader to prevent forks
+                line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
+                        'bash', '-c',
+                        'LD_PRELOAD=/preloader.so {}'.format(
+                          os.path.join(workdir, main.split('.')[0]))]
+                c(line)
 
     except Exception:
         traceback.print_exc()
