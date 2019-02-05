@@ -46,11 +46,6 @@ from compile_server.app.views import CrossDomainResponse
 
 gnatprove_found = False
 
-ALLOWED_EXTRA_ARGS = {'spark-flow': "--mode=flow",
-                      'spark-report-all': "--report=all"}
-# We maintain a list of extra arguments that can be passed to the command
-# line. For security we don't want the user to pass arguments as-is.
-
 PROCESSES_LIMIT = 300  # The limit of processes that can be running
 
 RECEIVED_FILE_CHAR_LIMIT = 50 * 1000
@@ -173,14 +168,6 @@ def check_program(request):
     command = ["gnatprove", "-P", "main", "--checks-as-errors",
                "--level=0", "--no-axiom-guard"]
 
-    # Process extra_args
-    if 'extra_args' in received_json:
-        extra_args = received_json['extra_args']
-        if extra_args:
-            if extra_args not in ALLOWED_EXTRA_ARGS:
-                return CrossDomainResponse(
-                    {'identifier': '', 'message': "extra_args not known"})
-            command.append(ALLOWED_EXTRA_ARGS[extra_args])
     print " ".join(command)
     try:
         p = process_handling.SeparateProcess([command], tempd)

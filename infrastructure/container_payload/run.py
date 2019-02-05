@@ -118,8 +118,9 @@ def safe_run(workdir, mode):
 
     c(["echo"])
     try:
+        main = extract_main(workdir)
+
         if mode == "run":
-            main = extract_main(workdir)
             doctor_main_gpr(workdir, main, False)
 
             # In "run" mode, first build, and then launch the main
@@ -135,11 +136,22 @@ def safe_run(workdir, mode):
                 c(line)
 
         elif mode == "prove":
-            main = extract_main(workdir)
             doctor_main_gpr(workdir, main, spark_mode=True)
             line = ["gnatprove", "-P", "main", "--checks-as-errors",
                     "--level=0", "--no-axiom-guard"]
             c(line)
+        elif mode == "prove_flow":
+            doctor_main_gpr(workdir, main, spark_mode=True)
+            line = ["gnatprove", "-P", "main", "--checks-as-errors",
+                    "--level=0", "--no-axiom-guard", "--mode=flow"]
+            c(line)
+
+        elif mode == "prove_report_all":
+            doctor_main_gpr(workdir, main, spark_mode=True)
+            line = ["gnatprove", "-P", "main", "--checks-as-errors",
+                    "--level=0", "--no-axiom-guard", "--report=all"]
+            c(line)
+
         else:
             print "mode not implemented"
 
@@ -149,7 +161,8 @@ def safe_run(workdir, mode):
     finally:
         if os.path.isdir(workdir):
             time.sleep(0.2)  # Time for the filesystem to sync
-            c(["rm", "-rf", workdir])
+            if not DEBUG:
+                c(["rm", "-rf", workdir])
 
 
 if __name__ == '__main__':
