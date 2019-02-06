@@ -10,7 +10,7 @@ create_container:
 	lxc list | grep safecontainer || \
           (lxc launch ubuntu:`cat /etc/issue | cut -d ' '  -f2 | cut -d '.' -f 1-2` safecontainer -s default && \
 	# wait a bit to allow network to come up \
-	sleep 5)
+	sleep 5 ; lxc config set safecontainer limits.processes 300 )
 
 setup_container:
 	# install this first!
