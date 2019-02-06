@@ -7,6 +7,7 @@
     exists and is running.
 """
 
+import io
 import os
 import codecs
 import glob
@@ -50,37 +51,7 @@ def run(command):
     return output
 
 
-def doctor_main_gpr(tempd, main="", spark_mode=False):
-    """Doctor the main.gpr to replace the placeholder with the name of the
-       main, and the .adc configuration file for SPARK.
-
-       See template "inline_code".
-    """
-    # In the temporary directory, doctor the project file to know about the
-    # main.
-
-    project_file = os.path.join(tempd, "main.gpr")
-    with codecs.open(project_file, "rb", encoding="utf-8") as f:
-        project_str = f.read()
-
-    if main:
-        project_str = project_str.replace(
-            "--MAIN_PLACEHOLDER--",
-            'for Main use ("{}");'.format(main))
-
-    with codecs.open(project_file, "wb", encoding="utf-8") as f:
-        f.write(project_str)
-
-    # Create the main.adc file
-    adc_file = os.path.join(tempd, "main.adc")
-    contents = COMMON_ADC
-    if spark_mode:
-        contents += '\n' + SPARK_ADC
-    with open(adc_file, "wb") as f:
-        f.write(contents)
-
-
-def extract_main(workdir):
+def extract_ada_main(workdir):
     """Return the main if it is found in workdir, empty string otherwise"""
     # Current heuristics for finding the main:
     # find the .adb that doesn't have a .ads.
@@ -100,15 +71,80 @@ def extract_main(workdir):
         return ''
 
 
+def doctor_main_gpr(tempd, spark_mode=False):
+    """Doctor the main.gpr to replace the placeholder with the name of the
+       main, and the .adc configuration file for SPARK.
+
+       See template "inline_code".
+
+       Return the name of the main that was found.
+    """
+    # In the temporary directory, doctor the project file to know about the
+    # main.
+
+    to_insert = ''
+    languages = []
+    main = ""
+
+    # Figure out which language(s) to use
+    if glob.glob(os.path.join(tempd, '*.adb')):
+        languages.append('Ada')
+        # Figure out which main to use
+        main = extract_ada_main(tempd)
+
+    if glob.glob(os.path.join(tempd, '*.c')):
+        languages.append('C')
+        # If there is C
+        main = 'main.c'
+
+    if languages:
+        to_insert += ("\nfor Languages use ({});".format(
+            ", ".join(['"{}"'.format(x) for x in languages])))
+
+    if main:
+        to_insert += '\nfor Main use ("{}");'.format(main)
+
+    # Read the project file
+
+    project_file = os.path.join(tempd, "main.gpr")
+    with codecs.open(project_file, "rb", encoding="utf-8") as f:
+        project_str = f.read()
+
+    project_str = project_str.replace("--MAIN_PLACEHOLDER--", to_insert)
+
+    with codecs.open(project_file, "wb", encoding="utf-8") as f:
+        f.write(project_str)
+
+    # Create the main.adc file
+    adc_file = os.path.join(tempd, "main.adc")
+    contents = COMMON_ADC
+    if spark_mode:
+        contents += '\n' + SPARK_ADC
+    with open(adc_file, "wb") as f:
+        f.write(contents)
+
+    return main
+
+
 def safe_run(workdir, mode):
     def c(cl=[]):
         """Aux procedure, run the given command line and output to stdout"""
         try:
             if DEBUG:
                 print "running: {}".format(cl)
-            returncode = subprocess.call(cl, cwd=workdir,
-                                         stdout=sys.stdout, shell=False)
-            if returncode == INTERRUPT_RETURNCODE:
+            p = subprocess.Popen(cl, cwd=workdir,
+                                 stdout=subprocess.PIPE, shell=False)
+            while True:
+                line = p.stdout.readline()
+                if line != '':
+                    print line
+                    sys.stdout.flush()
+                else:
+                    p.poll()
+                    break
+
+            sys.stdout.flush()
+            if p.returncode == INTERRUPT_RETURNCODE:
                 print INTERRUPT_STRING
             return True
         except Exception:
@@ -118,10 +154,8 @@ def safe_run(workdir, mode):
 
     c(["echo"])
     try:
-        main = extract_main(workdir)
-
         if mode == "run":
-            doctor_main_gpr(workdir, main, False)
+            main = doctor_main_gpr(workdir, False)
 
             # In "run" mode, first build, and then launch the main
             if c(["gprbuild", "-q", "-P", "main"]):
@@ -136,18 +170,18 @@ def safe_run(workdir, mode):
                 c(line)
 
         elif mode == "prove":
-            doctor_main_gpr(workdir, main, spark_mode=True)
+            doctor_main_gpr(workdir, spark_mode=True)
             line = ["gnatprove", "-P", "main", "--checks-as-errors",
                     "--level=0", "--no-axiom-guard"]
             c(line)
         elif mode == "prove_flow":
-            doctor_main_gpr(workdir, main, spark_mode=True)
+            doctor_main_gpr(workdir, spark_mode=True)
             line = ["gnatprove", "-P", "main", "--checks-as-errors",
                     "--level=0", "--no-axiom-guard", "--mode=flow"]
             c(line)
 
         elif mode == "prove_report_all":
-            doctor_main_gpr(workdir, main, spark_mode=True)
+            doctor_main_gpr(workdir, spark_mode=True)
             line = ["gnatprove", "-P", "main", "--checks-as-errors",
                     "--level=0", "--no-axiom-guard", "--report=all"]
             c(line)
