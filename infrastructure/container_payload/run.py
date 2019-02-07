@@ -158,7 +158,7 @@ def safe_run(workdir, mode):
             main = doctor_main_gpr(workdir, False)
 
             # In "run" mode, first build, and then launch the main
-            if c(["gprbuild", "-q", "-P", "main"]):
+            if c(["gprbuild", "-q", "-P", "main", "-gnatwa"]):
                 # We run:
                 #  - as user 'unprivileged' that has no write access
                 #  - under a timeout
