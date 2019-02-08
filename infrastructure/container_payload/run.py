@@ -135,7 +135,7 @@ def safe_run(workdir, mode):
             p = subprocess.Popen(cl, cwd=workdir,
                                  stdout=subprocess.PIPE, shell=False)
             while True:
-                line = p.stdout.readline()
+                line = p.stdout.readline().replace(workdir, '.')
                 if line != '':
                     print line
                     sys.stdout.flush()
@@ -163,11 +163,12 @@ def safe_run(workdir, mode):
                 #  - as user 'unprivileged' that has no write access
                 #  - under a timeout
                 #  - with our ld preloader to prevent forks
-                line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
-                        'bash', '-c',
-                        'LD_PRELOAD=/preloader.so {}'.format(
-                          os.path.join(workdir, main.split('.')[0]))]
-                c(line)
+                if main:
+                    line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
+                            'bash', '-c',
+                            'LD_PRELOAD=/preloader.so {}'.format(
+                              os.path.join(workdir, main.split('.')[0]))]
+                    c(line)
 
         elif mode == "prove":
             doctor_main_gpr(workdir, spark_mode=True)
