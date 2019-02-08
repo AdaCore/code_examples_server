@@ -8,6 +8,7 @@
 """
 
 import io
+import re
 import os
 import codecs
 import glob
@@ -39,6 +40,8 @@ pragma Warnings (Off, "subprogram * has no effect");
 pragma Warnings (Off, "file name does not match");
 """
 
+procedure_re = re.compile("^procedure +[A-Za-z][a-zA-Z0-9]* +is", re.MULTILINE)
+
 
 def run(command):
     if DEBUG:
@@ -62,6 +65,15 @@ def extract_ada_main(workdir):
     mains = [b for b in bases if b + '.ads' not in names]
     if mains:
         main = mains[-1]
+
+        # Verify that the main does indeed contain a main
+        with open(os.path.join(workdir, main + '.adb'), 'rb') as fd:
+            main_text = fd.read()
+
+        if not procedure_re.findall(main_text):
+            # This is not a main
+            main = ''
+
         if DEBUG and len(mains) > 1:
             print "multiple mains found"
         return main
