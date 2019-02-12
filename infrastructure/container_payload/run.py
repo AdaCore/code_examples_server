@@ -40,7 +40,7 @@ pragma Warnings (Off, "subprogram * has no effect");
 pragma Warnings (Off, "file name does not match");
 """
 
-procedure_re = re.compile("^procedure +[A-Za-z][a-zA-Z0-9]* +is", re.MULTILINE)
+procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]* +is", re.MULTILINE)
 
 
 def run(command):
