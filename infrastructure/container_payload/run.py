@@ -20,7 +20,9 @@ import traceback
 CONT = 'safecontainer'
 INTERRUPT_STRING = '<interrupted>'
 INTERRUPT_RETURNCODE = 124
-DEBUG = False
+DEBUG = True
+
+CLI_FILE = "cli.txt"
 
 
 COMMON_ADC = """
@@ -40,7 +42,7 @@ pragma Warnings (Off, "subprogram * has no effect");
 pragma Warnings (Off, "file name does not match");
 """
 
-procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]* +is", re.MULTILINE)
+procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]* +(is|with)", re.MULTILINE)
 
 
 def run(command):
@@ -171,6 +173,18 @@ def safe_run(workdir, mode):
 
             # In "run" mode, first build, and then launch the main
             if c(["gprbuild", "-q", "-P", "main", "-gnatwa"]):
+                cli_txt = os.path.join(workdir, CLI_FILE)
+
+                # Check to see if cli.txt was sent from the front-end
+                if os.path.isfile(cli_txt):
+                    # If it is found, read contents into string and replace
+                    #  newlines with spaces
+                    with open(cli_txt, 'r') as f:
+                        cli = f.read().replace('\n', ' ')
+                else:
+                    # otherwise pass no arguments to the main
+                    cli = ""
+
                 # We run:
                 #  - as user 'unprivileged' that has no write access
                 #  - under a timeout
@@ -178,8 +192,8 @@ def safe_run(workdir, mode):
                 if main:
                     line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
                             'bash', '-c',
-                            'LD_PRELOAD=/preloader.so {}'.format(
-                              os.path.join(workdir, main.split('.')[0]))]
+                            'LD_PRELOAD=/preloader.so {} {}'.format(
+                              os.path.join(workdir, main.split('.')[0]), cli)]
                     c(line)
 
         elif mode == "prove":
