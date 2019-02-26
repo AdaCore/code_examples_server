@@ -20,7 +20,7 @@ import traceback
 CONT = 'safecontainer'
 INTERRUPT_STRING = '<interrupted>'
 INTERRUPT_RETURNCODE = 124
-DEBUG = True
+DEBUG = False
 
 CLI_FILE = "cli.txt"
 
