@@ -222,13 +222,23 @@ def run_program(request):
         return CrossDomainResponse(result)
 
     # Run the command(s) to check the program
-    commands = [
-        # Run the program
-        ["lxc", "exec", "safecontainer", "--", "su", "runner",
-         "-c",
-         "python /workspace/run.py /workspace/sessions/{} {}".format(
-            os.path.basename(tempd), mode)]
-    ]
+    if 'lab' in received_json:
+        lab = received_json['lab']
+        commands = [
+            # Run the program
+            ["lxc", "exec", "safecontainer", "--", "su", "runner",
+             "-c",
+             "python /workspace/run.py /workspace/sessions/{} {} {}".format(
+                os.path.basename(tempd), mode, lab)]
+        ]
+    else:
+        commands = [
+            # Run the program
+            ["lxc", "exec", "safecontainer", "--", "su", "runner",
+             "-c",
+             "python /workspace/run.py /workspace/sessions/{} {}".format(
+                os.path.basename(tempd), mode)]
+        ]
 
     print "\n".join(" ".join(c) for c in commands)
 
