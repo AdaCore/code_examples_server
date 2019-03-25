@@ -146,7 +146,9 @@ def doctor_main_gpr(tempd, spark_mode=False):
 
 def safe_run(workdir, mode, lab):
     def c(cl=[]):
-        """Aux procedure, run the given command line and output to stdout"""
+        """Aux procedure, run the given command line and output to stdout."""
+        """Returns a tuple of (Boolean success, list stdout)."""
+        output_lines = []
         try:
             if DEBUG:
                 print "running: {}".format(cl)
@@ -156,6 +158,7 @@ def safe_run(workdir, mode, lab):
                 line = p.stdout.readline().replace(workdir, '.')
                 if line != '':
                     print line
+                    output_lines.append(line)
                     sys.stdout.flush()
                 else:
                     p.poll()
@@ -164,11 +167,11 @@ def safe_run(workdir, mode, lab):
             sys.stdout.flush()
             if p.returncode == INTERRUPT_RETURNCODE:
                 print INTERRUPT_STRING
-            return True
+            return True, output_lines
         except Exception:
             print "ERROR when running {}".format(' '.join(cl))
             traceback.print_exc()
-            return False
+            return False, output_lines
 
     c(["echo"])
     try:
@@ -231,8 +234,8 @@ def safe_run(workdir, mode, lab):
                             else:
                                 test_cases[key] = {io: seq}
 
-                # Loop over IO resources and run all instances
-                for index, test in test_cases.iteritems():
+                # Loop over IO resources and run all instances in sorted order by test case number
+                for index, test in sorted(test_cases.items()):
                     # check that this test case has defined ins and outs
                     if "in" in test.keys() and "out" in test.keys():
                         # We run:
@@ -244,9 +247,9 @@ def safe_run(workdir, mode, lab):
                                     'bash', '-c',
                                     'LD_PRELOAD=/preloader.so {} {}'.format(
                                       os.path.join(workdir, main.split('.')[0]), test["in"])]
-                            c(line)
                             # TODO: get output and put it in actual_out
-                            actual_out = ""
+                            success, actual_out_list = c(line)
+                            actual_out = " ".join(actual_out_list).replace('\n', '').replace('\r', '')
                             if actual_out != test["out"]:
                                 print("Test case #{} failed. Output was {}. Expected {}.".format(index, actual_out, test["out"]))
                                 sys.exit(1)
