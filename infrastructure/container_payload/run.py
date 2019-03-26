@@ -26,7 +26,7 @@ CLI_FILE = "cli.txt"
 
 LAB_IO_FILE = "lab_io.txt"
 
-LAB_IO_REGEX = re.compile("(in|out) (\d+): (.*)")
+LAB_IO_REGEX = re.compile("(in|out) *(\d+): *(.*)")
 
 
 COMMON_ADC = """
@@ -46,17 +46,19 @@ pragma Warnings (Off, "subprogram * has no effect");
 pragma Warnings (Off, "file name does not match");
 """
 
-procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]* +(is|with)", re.MULTILINE)
+procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]*[ |\n]+(is|with)", re.MULTILINE)
+
+def debug_print(str):
+    if DEBUG:
+        print str
 
 
 def run(command):
-    if DEBUG:
-        print ">", " ".join(command)
+    debug_print(">{}".format(" ".join(command)))
     output = subprocess.check_output(["lxc", "exec", CONT, "--"] + command)
     if output:
         output = output.rstrip()
-    if DEBUG:
-            print "<", output
+    debug_print("<{}".format(output))
     return output
 
 
@@ -80,12 +82,11 @@ def extract_ada_main(workdir):
             # This is not a main
             main = ''
 
-        if DEBUG and len(mains) > 1:
-            print "multiple mains found"
+        if len(mains) > 1:
+            debug_print("multiple mains found")
         return main
     else:
-        if DEBUG:
-            print "No main found"
+        debug_print("No main found")
         return ''
 
 
@@ -150,8 +151,8 @@ def safe_run(workdir, mode, lab):
         """Returns a tuple of (Boolean success, list stdout)."""
         output_lines = []
         try:
-            if DEBUG:
-                print "running: {}".format(cl)
+            debug_print("running: {}".format(cl))
+
             p = subprocess.Popen(cl, cwd=workdir,
                                  stdout=subprocess.PIPE, shell=False)
             while True:
@@ -202,6 +203,7 @@ def safe_run(workdir, mode, lab):
                             'LD_PRELOAD=/preloader.so {} {}'.format(
                               os.path.join(workdir, main.split('.')[0]), cli)]
                     c(line)
+
         elif mode == "submit":
             main = doctor_main_gpr(workdir, False)
 
@@ -258,6 +260,7 @@ def safe_run(workdir, mode, lab):
 
                     else:
                         print("Cannot run test case #{}".format(index))
+                        sys.exit(1)
 
                 print("All test cases passed. Lab completed.")
 
@@ -301,7 +304,7 @@ if __name__ == '__main__':
         if len(sys.argv) == 3:
             lab = sys.argv[3]
         else:
-            lab = None 
+            lab = None
     else:
         print "Error invoking run"
         sys.exit(1)
