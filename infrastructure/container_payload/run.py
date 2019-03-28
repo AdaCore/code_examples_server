@@ -297,11 +297,11 @@ def safe_run(workdir, mode, lab):
 if __name__ == '__main__':
     # perform some sanity checking on args - this is not meant to
     # be launched interactively
-    if len(sys.argv) >= 2:
+    if len(sys.argv) >= 3:
         workdir = sys.argv[1]
         mode = sys.argv[2]
 
-        if len(sys.argv) == 3:
+        if len(sys.argv) == 4:
             lab = sys.argv[3]
         else:
             lab = None
