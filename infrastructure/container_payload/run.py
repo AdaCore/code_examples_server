@@ -208,8 +208,7 @@ def safe_run(workdir, mode, lab):
             main = doctor_main_gpr(workdir, False)
 
             # In "run" mode, first build, and then launch the main
-            if build():
-
+            if build() and main:
                 # Check to see if cli.txt was sent from the front-end
                 cli_txt = os.path.join(workdir, CLI_FILE)
                 if os.path.isfile(cli_txt):
@@ -220,14 +219,15 @@ def safe_run(workdir, mode, lab):
                     # otherwise pass no arguments to the main
                     cli = ""
 
-                if main:
-                    run(main, workdir, cli)
+                run(main, workdir, cli)
+            else:
+                print("Build failed...")
 
         elif mode == "submit":
             main = doctor_main_gpr(workdir, False)
 
             # In "submit" mode, first build, and then launch the main with test_cases
-            if build():
+            if build() and main:
                 # Check to see if lab has IO resources
                 labio_txt = os.path.join(workdir, LAB_IO_FILE)
                 if os.path.isfile(labio_txt):
@@ -258,14 +258,13 @@ def safe_run(workdir, mode, lab):
                     for index, test in sorted(test_cases.items()):
                         # check that this test case has defined ins and outs
                         if "in" in test.keys() and "out" in test.keys():
-                            if main:
-                                success, actual_out_list = run(main, workdir, test["in"])
-                                actual_out = " ".join(actual_out_list).replace('\n', '').replace('\r', '')
-                                if actual_out != test["out"]:
-                                    print("Test case #{} failed.\nOutput was: {}\nExpected: {}".format(index, actual_out, test["out"]))
-                                    sys.exit(1)
-                                else:
-                                    print("Test #{} passed.".format(index))
+                            success, actual_out_list = run(main, workdir, test["in"])
+                            actual_out = " ".join(actual_out_list).replace('\n', '').replace('\r', '')
+                            if actual_out != test["out"]:
+                                print("Test case #{} failed.\nOutput was: {}\nExpected: {}".format(index, actual_out, test["out"]))
+                                sys.exit(1)
+                            else:
+                                print("Test #{} passed.".format(index))
 
                         else:
                             print("Cannot run test case #{}".format(index))
@@ -275,6 +274,8 @@ def safe_run(workdir, mode, lab):
                 else:
                     # No lab IO resources defined. This is an error in the lab config
                     print("No submission criteria found for this lab. Please report this issue on https://github.com/AdaCore/learn/issues")
+            else:
+                print("Build failed...")
 
         elif mode == "prove":
             doctor_main_gpr(workdir, spark_mode=True)
