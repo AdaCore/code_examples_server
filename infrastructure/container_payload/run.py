@@ -196,84 +196,81 @@ def safe_run(workdir, mode, lab):
         return c(get_run_line(main, workdir, args))
 
     def get_prove_line(extra_args=[]):
-        return ["gnatprove", "-P", "main", "--checks-as-errors",
-                "--level=0", "--no-axiom-guard"].extend(extra_args)
+        line = ["gnatprove", "-P", "main", "--checks-as-errors",
+                "--level=0", "--no-axiom-guard"]
+        line.extend(extra_args)
+        return line
 
     def prove(extra_args=[]):
         return c(get_prove_line(extra_args))
 
     c(["echo"])
     try:
-        if mode == "run":
+        if mode == "run" or mode == "submit":
             main = doctor_main_gpr(workdir, False)
 
             # In "run" mode, first build, and then launch the main
             if build() and main:
-                # Check to see if cli.txt was sent from the front-end
-                cli_txt = os.path.join(workdir, CLI_FILE)
-                if os.path.isfile(cli_txt):
-                    # If it is found, read contents into string and replace
-                    #  newlines with spaces
-                    cli = "`cat {}`".format(CLI_FILE);
+                if mode == "run":
+                    # Check to see if cli.txt was sent from the front-end
+                    cli_txt = os.path.join(workdir, CLI_FILE)
+                    if os.path.isfile(cli_txt):
+                        # If it is found, read contents into string and replace
+                        #  newlines with spaces
+                        cli = "`cat {}`".format(CLI_FILE);
+                    else:
+                        # otherwise pass no arguments to the main
+                        cli = ""
+
+                    run(main, workdir, cli)
                 else:
-                    # otherwise pass no arguments to the main
-                    cli = ""
+                    # mode == "submit"
+                    # Check to see if lab has IO resources
+                    labio_txt = os.path.join(workdir, LAB_IO_FILE)
+                    if os.path.isfile(labio_txt):
+                        # If it is found, read contents
+                        with open(labio_txt, 'r') as f:
+                            io_lines = f.readlines()
 
-                run(main, workdir, cli)
-            else:
-                print("Build failed...")
+                        # organize test instances
+                        test_cases = {}
+                        for line in io_lines:
+                            match = LAB_IO_REGEX.match(line)
 
-        elif mode == "submit":
-            main = doctor_main_gpr(workdir, False)
+                            if match is not None:
+                                # found match(es)
+                                io = match.group(1)
+                                key = match.group(2)
+                                seq = match.group(3)
 
-            # In "submit" mode, first build, and then launch the main with test_cases
-            if build() and main:
-                # Check to see if lab has IO resources
-                labio_txt = os.path.join(workdir, LAB_IO_FILE)
-                if os.path.isfile(labio_txt):
-                    # If it is found, read contents
-                    with open(labio_txt, 'r') as f:
-                        io_lines = f.readlines()
-
-                    # organize test instances
-                    test_cases = {}
-                    for line in io_lines:
-                        match = LAB_IO_REGEX.match(line)
-
-                        if match is not None:
-                            # found match(es)
-                            io = match.group(1)
-                            key = match.group(2)
-                            seq = match.group(3)
-
-                            if key in test_cases.keys():
-                                if io in test_cases[key].keys():
-                                    test_cases[key][io] += seq
+                                if key in test_cases.keys():
+                                    if io in test_cases[key].keys():
+                                        test_cases[key][io] += seq
+                                    else:
+                                        test_cases[key][io] = seq
                                 else:
-                                    test_cases[key][io] = seq
-                            else:
-                                test_cases[key] = {io: seq}
+                                    test_cases[key] = {io: seq}
 
-                    # Loop over IO resources and run all instances in sorted order by test case number
-                    for index, test in sorted(test_cases.items()):
-                        # check that this test case has defined ins and outs
-                        if "in" in test.keys() and "out" in test.keys():
-                            success, actual_out_list = run(main, workdir, test["in"])
-                            actual_out = " ".join(actual_out_list).replace('\n', '').replace('\r', '')
-                            if actual_out != test["out"]:
-                                print("Test case #{} failed.\nOutput was: {}\nExpected: {}".format(index, actual_out, test["out"]))
+                        # Loop over IO resources and run all instances in sorted order by test case number
+                        for index, test in sorted(test_cases.items()):
+                            # check that this test case has defined ins and outs
+                            if "in" in test.keys() and "out" in test.keys():
+                                success, actual_out_list = run(main, workdir, test["in"])
+                                actual_out = " ".join(actual_out_list).replace('\n', '').replace('\r', '')
+                                if actual_out != test["out"]:
+                                    print("Test case #{} failed.\nOutput was: {}\nExpected: {}".format(index, actual_out, test["out"]))
+                                    sys.exit(1)
+                                else:
+                                    print("Test #{} passed.".format(index))
+
+                            else:
+                                print("Cannot run test case #{}".format(index))
                                 sys.exit(1)
-                            else:
-                                print("Test #{} passed.".format(index))
 
-                        else:
-                            print("Cannot run test case #{}".format(index))
-                            sys.exit(1)
-
-                    print("All test cases passed. Lab completed.")
-                else:
-                    # No lab IO resources defined. This is an error in the lab config
-                    print("No submission criteria found for this lab. Please report this issue on https://github.com/AdaCore/learn/issues")
+                        print("All test cases passed. Lab completed.")
+                    else:
+                        # No lab IO resources defined. This is an error in the lab config
+                        print("No submission criteria found for this lab. Please report this issue on https://github.com/AdaCore/learn/issues")
             else:
                 print("Build failed...")
 
