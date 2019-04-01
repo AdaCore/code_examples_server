@@ -24,6 +24,10 @@ DEBUG = False
 
 CLI_FILE = "cli.txt"
 
+LAB_IO_FILE = "lab_io.txt"
+
+LAB_IO_REGEX = re.compile("(in|out) *(\d+): *(.*)")
+
 
 COMMON_ADC = """
 pragma Restrictions (No_Specification_of_Aspect => Import);
@@ -42,17 +46,19 @@ pragma Warnings (Off, "subprogram * has no effect");
 pragma Warnings (Off, "file name does not match");
 """
 
-procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]* +(is|with)", re.MULTILINE)
+procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]*[ |\n]+(is|with)", re.MULTILINE)
+
+def debug_print(str):
+    if DEBUG:
+        print str
 
 
 def run(command):
-    if DEBUG:
-        print ">", " ".join(command)
+    debug_print(">{}".format(" ".join(command)))
     output = subprocess.check_output(["lxc", "exec", CONT, "--"] + command)
     if output:
         output = output.rstrip()
-    if DEBUG:
-            print "<", output
+    debug_print("<{}".format(output))
     return output
 
 
@@ -76,12 +82,11 @@ def extract_ada_main(workdir):
             # This is not a main
             main = ''
 
-        if DEBUG and len(mains) > 1:
-            print "multiple mains found"
+        if len(mains) > 1:
+            debug_print("multiple mains found")
         return main
     else:
-        if DEBUG:
-            print "No main found"
+        debug_print("No main found")
         return ''
 
 
@@ -140,18 +145,21 @@ def doctor_main_gpr(tempd, spark_mode=False):
     return main
 
 
-def safe_run(workdir, mode):
+def safe_run(workdir, mode, lab):
     def c(cl=[]):
-        """Aux procedure, run the given command line and output to stdout"""
+        """Aux procedure, run the given command line and output to stdout."""
+        """Returns a tuple of (Boolean success, list stdout)."""
+        output_lines = []
         try:
-            if DEBUG:
-                print "running: {}".format(cl)
+            debug_print("running: {}".format(cl))
+
             p = subprocess.Popen(cl, cwd=workdir,
                                  stdout=subprocess.PIPE, shell=False)
             while True:
                 line = p.stdout.readline().replace(workdir, '.')
                 if line != '':
                     print line
+                    output_lines.append(line)
                     sys.stdout.flush()
                 else:
                     p.poll()
@@ -160,11 +168,11 @@ def safe_run(workdir, mode):
             sys.stdout.flush()
             if p.returncode == INTERRUPT_RETURNCODE:
                 print INTERRUPT_STRING
-            return True
+            return True, output_lines
         except Exception:
             print "ERROR when running {}".format(' '.join(cl))
             traceback.print_exc()
-            return False
+            return False, output_lines
 
     c(["echo"])
     try:
@@ -173,9 +181,9 @@ def safe_run(workdir, mode):
 
             # In "run" mode, first build, and then launch the main
             if c(["gprbuild", "-q", "-P", "main", "-gnatwa"]):
-                cli_txt = os.path.join(workdir, CLI_FILE)
 
                 # Check to see if cli.txt was sent from the front-end
+                cli_txt = os.path.join(workdir, CLI_FILE)
                 if os.path.isfile(cli_txt):
                     # If it is found, read contents into string and replace
                     #  newlines with spaces
@@ -195,6 +203,66 @@ def safe_run(workdir, mode):
                             'LD_PRELOAD=/preloader.so {} {}'.format(
                               os.path.join(workdir, main.split('.')[0]), cli)]
                     c(line)
+
+        elif mode == "submit":
+            main = doctor_main_gpr(workdir, False)
+
+            # In "submit" mode, first build, and then launch the main with test_cases
+            if c(["gprbuild", "-q", "-P", "main", "-gnatwa"]):
+                # Check to see if lab has IO resources
+                labio_txt = os.path.join(workdir, LAB_IO_FILE)
+                if os.path.isfile(labio_txt):
+                    # If it is found, read contents into string and replace
+                    #  newlines with spaces
+                    with open(labio_txt, 'r') as f:
+                        io_lines = f.readlines()
+
+                    # organize test instances
+                    test_cases = {}
+                    for line in io_lines:
+                        match = LAB_IO_REGEX.match(line)
+
+                        if match is not None:
+                            # found match(es)
+                            io = match.group(1)
+                            key = match.group(2)
+                            seq = match.group(3)
+
+                            if key in test_cases.keys():
+                                if io in test_cases[key].keys():
+                                    test_cases[key][io] += seq
+                                else:
+                                    test_cases[key][io] = seq
+                            else:
+                                test_cases[key] = {io: seq}
+
+                # Loop over IO resources and run all instances in sorted order by test case number
+                for index, test in sorted(test_cases.items()):
+                    # check that this test case has defined ins and outs
+                    if "in" in test.keys() and "out" in test.keys():
+                        # We run:
+                        #  - as user 'unprivileged' that has no write access
+                        #  - under a timeout
+                        #  - with our ld preloader to prevent forks
+                        if main:
+                            line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
+                                    'bash', '-c',
+                                    'LD_PRELOAD=/preloader.so {} {}'.format(
+                                      os.path.join(workdir, main.split('.')[0]), test["in"])]
+                            # TODO: get output and put it in actual_out
+                            success, actual_out_list = c(line)
+                            actual_out = " ".join(actual_out_list).replace('\n', '').replace('\r', '')
+                            if actual_out != test["out"]:
+                                print("Test case #{} failed. Output was {}. Expected {}.".format(index, actual_out, test["out"]))
+                                sys.exit(1)
+                            else:
+                                print("Test #{} passed.".format(index))
+
+                    else:
+                        print("Cannot run test case #{}".format(index))
+                        sys.exit(1)
+
+                print("All test cases passed. Lab completed.")
 
         elif mode == "prove":
             doctor_main_gpr(workdir, spark_mode=True)
@@ -227,12 +295,21 @@ def safe_run(workdir, mode):
 
 
 if __name__ == '__main__':
-    # Do not perform any sanity checking on args - this is not meant to
+    # perform some sanity checking on args - this is not meant to
     # be launched interactively
-    workdir = sys.argv[1]
-    mode = sys.argv[2]
+    if len(sys.argv) >= 3:
+        workdir = sys.argv[1]
+        mode = sys.argv[2]
+
+        if len(sys.argv) == 4:
+            lab = sys.argv[3]
+        else:
+            lab = None
+    else:
+        print "Error invoking run"
+        sys.exit(1)
 
     # This is where the compiler is installed
     os.environ["PATH"] = "/gnat/bin:{}".format(os.environ["PATH"])
 
-    safe_run(workdir, mode)
+    safe_run(workdir, mode, lab)
