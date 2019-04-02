@@ -26,7 +26,7 @@ CLI_FILE = "cli.txt"
 
 LAB_IO_FILE = "lab_io.txt"
 
-LAB_IO_REGEX = re.compile("(in|out) *(\d+): *(.*)") 
+LAB_IO_REGEX = re.compile("(in|out) *(\d+): *(.*)")
 
 
 COMMON_ADC = """
@@ -158,7 +158,7 @@ def safe_run(workdir, mode, lab):
             while True:
                 line = p.stdout.readline().replace(workdir, '.')
                 if line != '':
-                    print line
+                #    print line
                     output_lines.append(line)
                     sys.stdout.flush()
                 else:
@@ -215,14 +215,16 @@ def safe_run(workdir, mode, lab):
                     # Check to see if cli.txt was sent from the front-end
                     cli_txt = os.path.join(workdir, CLI_FILE)
                     if os.path.isfile(cli_txt):
-                        # If it is found, read contents into string and replace
-                        #  newlines with spaces
-                        cli = "`cat {}`".format(CLI_FILE);
+                        cli = "`cat {}`".format(cli_txt);
+                        with open(cli_txt, 'r') as f:
+                            print("stdin: {}".format(f.read().replace('\n', ' ')))
                     else:
                         # otherwise pass no arguments to the main
                         cli = ""
 
-                    run(main, workdir, cli)
+                    errno, stdout = run(main, workdir, cli)
+                    for line in stdout:
+                        print("stdout: {}".format(line))
                 else:
                     # mode == "submit"
                     # Check to see if lab has IO resources
@@ -255,8 +257,11 @@ def safe_run(workdir, mode, lab):
                         for index, test in sorted(test_cases.items()):
                             # check that this test case has defined ins and outs
                             if "in" in test.keys() and "out" in test.keys():
-                                success, actual_out_list = run(main, workdir, test["in"])
-                                actual_out = " ".join(actual_out_list).replace('\n', '').replace('\r', '')
+                                print("stdin: {}".format(test["in"]))
+                                errno, stdout = run(main, workdir, "`echo {}`".format(test["in"]))
+                                for line in stdout:
+                                    print("stdout: {}".format(line))
+                                actual_out = " ".join(stdout).replace('\n', '').replace('\r', '')
                                 if actual_out != test["out"]:
                                     print("Test case #{} failed.\nOutput was: {}\nExpected: {}".format(index, actual_out, test["out"]))
                                     sys.exit(1)
