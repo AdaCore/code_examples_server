@@ -147,6 +147,23 @@ def doctor_main_gpr(tempd, spark_mode=False):
 
 
 def safe_run(workdir, mode, lab):
+    def prefix_print(prefix, msg):
+        print("{}:{}".format(prefix, msg))
+
+    def print_stdout(msg):
+        prefix_print("stdout", msg)
+
+    def print_stderr(msg):
+        prefix_print("stderr", msg)
+
+    def print_stdin(msg):
+        prefix_print("stdin", msg)
+
+    def print_lab(success, cases):
+        lab_output = {"success": success, "test_cases": cases}
+        prefix_print("lab_output", json.dumps(lab_output))
+
+
     def c(cl=[]):
         """Aux procedure, run the given command line and output to stdout."""
         """Returns a tuple of (Boolean success, list stdout, returncode)."""
@@ -161,11 +178,11 @@ def safe_run(workdir, mode, lab):
                 stderr_line = p.stderr.readline().replace(workdir, '.')
 
                 if stderr_line != '':
-                    print("stderr:{}".format(stderr_line))
+                    print_stderr(stderr_line)
                     sys.stderr.flush()
 
                 if stdout_line != '':
-                    print("stdout:{}".format(stdout_line))
+                    print_stdout(stdout_line)
                     stdout_list.append(stdout_line)
                     sys.stdout.flush()
                 else:
@@ -176,10 +193,10 @@ def safe_run(workdir, mode, lab):
             sys.stderr.flush()
 
             if p.returncode == INTERRUPT_RETURNCODE:
-                print INTERRUPT_STRING
+                print_stderr(INTERRUPT_STRING)
             return True, stdout_list, p.returncode
         except Exception:
-            print "ERROR when running {}".format(' '.join(cl))
+            print_stderr("ERROR when running {}".format(' '.join(cl)))
             traceback.print_exc()
             return False, stdout_list, p.returncode
 
@@ -227,7 +244,7 @@ def safe_run(workdir, mode, lab):
                     if os.path.isfile(cli_txt):
                         cli = "`cat {}`".format(cli_txt);
                         with open(cli_txt, 'r') as f:
-                            print("stdin:{}".format(f.read().replace('\n', ' ')))
+                            print_stdin(f.read().replace('\n', ' '))
                     else:
                         # otherwise pass no arguments to the main
                         cli = ""
@@ -266,7 +283,7 @@ def safe_run(workdir, mode, lab):
                         for index, test in sorted(test_cases.items()):
                             # check that this test case has defined ins and outs
                             if "in" in test.keys() and "out" in test.keys():
-                                print("stdin:{}".format(test["in"]))
+                                print_stdin(test["in"])
 
                                 errno, stdout, retcode = run(main, workdir, "`echo {}`".format(test["in"]))
                                 test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
@@ -277,15 +294,14 @@ def safe_run(workdir, mode, lab):
                                 else:
                                     test["status"] = "Success"
                             else:
-                                print("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index))
+                                print_stderr("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index))
                                 sys.exit(1)
-                        lab_output = {"success": success, "test_cases": test_cases}
-                        print("lab_output:{}".format(json.dumps(lab_output)))
+                        print_lab(success, test_cases)
                     else:
                         # No lab IO resources defined. This is an error in the lab config
-                        print("No submission criteria found for this lab. Please report this issue on https://github.com/AdaCore/learn/issues")
+                        print_stderr("No submission criteria found for this lab. Please report this issue on https://github.com/AdaCore/learn/issues")
             else:
-                print("Build failed...")
+                print_stderr("Build failed...")
 
         elif mode == "prove":
             doctor_main_gpr(workdir, spark_mode=True)
@@ -297,7 +313,7 @@ def safe_run(workdir, mode, lab):
             doctor_main_gpr(workdir, spark_mode=True)
             prove(["--report=all"])
         else:
-            print "mode not implemented"
+            print_stderr("mode not implemented")
 
     except Exception:
         traceback.print_exc()
@@ -321,7 +337,7 @@ if __name__ == '__main__':
         else:
             lab = None
     else:
-        print "Error invoking run"
+        print_stderr("Error invoking run")
         sys.exit(1)
 
     # This is where the compiler is installed
