@@ -11,6 +11,7 @@ import io
 import re
 import os
 import codecs
+import json
 import glob
 import time
 import sys
@@ -148,38 +149,51 @@ def doctor_main_gpr(tempd, spark_mode=False):
 def safe_run(workdir, mode, lab):
     def c(cl=[]):
         """Aux procedure, run the given command line and output to stdout."""
-        """Returns a tuple of (Boolean success, list stdout)."""
-        output_lines = []
+        """Returns a tuple of (Boolean success, list stdout, returncode)."""
+        stdout_list = []
         try:
             debug_print("running: {}".format(cl))
 
             p = subprocess.Popen(cl, cwd=workdir,
-                                 stdout=subprocess.PIPE, shell=False)
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
             while True:
-                line = p.stdout.readline().replace(workdir, '.')
-                if line != '':
-                    print("stdout: {}".format(line))
-                    output_lines.append(line)
+                stdout_line = p.stdout.readline().replace(workdir, '.')
+                stderr_line = p.stderr.readline().replace(workdir, '.')
+
+                if stderr_line != '':
+                    print("stderr:{}".format(stderr_line))
+                    sys.stderr.flush()
+
+                if stdout_line != '':
+                    print("stdout:{}".format(stdout_line))
+                    stdout_list.append(stdout_line)
                     sys.stdout.flush()
                 else:
                     p.poll()
                     break
 
             sys.stdout.flush()
+            sys.stderr.flush()
+
             if p.returncode == INTERRUPT_RETURNCODE:
                 print INTERRUPT_STRING
-            return True, output_lines
+            return True, stdout_list, p.returncode
         except Exception:
             print "ERROR when running {}".format(' '.join(cl))
             traceback.print_exc()
-            return False, output_lines
+            return False, stdout_list, p.returncode
 
     def build(extra_args):
+        """Builds the application using static args and extra_args."""
+        """Returns a tuple of (Boolean success, list stdout, returncode)."""
         line = ["gprbuild", "-q", "-P", "main", "-gnatwa"]
         line.extend(extra_args)
         return c(line)
 
     def run(main, workdir, args):
+        """Runs the application"""
+        """Returns a tuple of (Boolean success, list stdout, returncode)."""
+
         # We run:
         #  - as user 'unprivileged' that has no write access
         #  - under a timeout
@@ -191,25 +205,29 @@ def safe_run(workdir, mode, lab):
         return c(line)
 
     def prove(extra_args):
+        """Proves the application"""
+        """Returns a tuple of (Boolean success, list stdout, returncode)."""
         line = ["gnatprove", "-P", "main", "--checks-as-errors",
                 "--level=0", "--no-axiom-guard"]
         line.extend(extra_args)
         return c(line)
 
+    # This is necessary to get the first line from the container. Otherwise
+    # the first line is lost.
     c(["echo"])
     try:
         if mode == "run" or mode == "submit":
             main = doctor_main_gpr(workdir, False)
 
-            # In "run" mode, first build, and then launch the main
-            if build([]) and main:
+            # In "run" or "submit" mode, build, and then launch the main
+            if build([])[2] == 0 and main:
                 if mode == "run":
                     # Check to see if cli.txt was sent from the front-end
                     cli_txt = os.path.join(workdir, CLI_FILE)
                     if os.path.isfile(cli_txt):
                         cli = "`cat {}`".format(cli_txt);
                         with open(cli_txt, 'r') as f:
-                            print("stdin: {}".format(f.read().replace('\n', ' ')))
+                            print("stdin:{}".format(f.read().replace('\n', ' ')))
                     else:
                         # otherwise pass no arguments to the main
                         cli = ""
@@ -244,24 +262,25 @@ def safe_run(workdir, mode, lab):
                                     test_cases[key] = {io: seq}
 
                         # Loop over IO resources and run all instances in sorted order by test case number
+                        success = True
                         for index, test in sorted(test_cases.items()):
                             # check that this test case has defined ins and outs
                             if "in" in test.keys() and "out" in test.keys():
-                                print("---------------------------");
-                                print("stdin: {}".format(test["in"]))
-                                errno, stdout = run(main, workdir, "`echo {}`".format(test["in"]))
-                                actual_out = " ".join(stdout).replace('\n', '').replace('\r', '')
-                                if actual_out != test["out"]:
-                                    print("Test case #{} failed.\nOutput was: {}\nExpected: {}".format(index, actual_out, test["out"]))
-                                    sys.exit(1)
-                                else:
-                                    print("Test #{} passed.".format(index))
-                                print("---------------------------");
-                            else:
-                                print("Cannot run test case #{}".format(index))
-                                sys.exit(1)
+                                print("stdin:{}".format(test["in"]))
 
-                        print("All test cases passed. Lab completed.")
+                                errno, stdout, retcode = run(main, workdir, "`echo {}`".format(test["in"]))
+                                test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
+
+                                if test["actual"] != test["out"]:
+                                    test["status"] = "Failed"
+                                    success = False
+                                else:
+                                    test["status"] = "Success"
+                            else:
+                                print("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index))
+                                sys.exit(1)
+                        lab_output = {"success": success, "test_cases": test_cases}
+                        print("lab_output:{}".format(json.dumps(lab_output)))
                     else:
                         # No lab IO resources defined. This is an error in the lab config
                         print("No submission criteria found for this lab. Please report this issue on https://github.com/AdaCore/learn/issues")
