@@ -158,7 +158,7 @@ def safe_run(workdir, mode, lab):
             while True:
                 line = p.stdout.readline().replace(workdir, '.')
                 if line != '':
-                #    print line
+                    print("stdout: {}".format(line))
                     output_lines.append(line)
                     sys.stdout.flush()
                 else:
@@ -174,35 +174,27 @@ def safe_run(workdir, mode, lab):
             traceback.print_exc()
             return False, output_lines
 
-    def get_build_line(extra_args=[]):
+    def build(extra_args):
         line = ["gprbuild", "-q", "-P", "main", "-gnatwa"]
         line.extend(extra_args)
-        return line
+        return c(line)
 
-    def build(extra_args=[]):
-        return c(get_build_line(extra_args))
-
-    def get_run_line(main, workdir, args):
+    def run(main, workdir, args):
         # We run:
         #  - as user 'unprivileged' that has no write access
         #  - under a timeout
         #  - with our ld preloader to prevent forks
-        return ['sudo', '-u', 'unprivileged', 'timeout', '10s',
+        line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
                 'bash', '-c',
                 'LD_PRELOAD=/preloader.so {} {}'.format(
                    os.path.join(workdir, main.split('.')[0]), args)]
+        return c(line)
 
-    def run(main, workdir, args):
-        return c(get_run_line(main, workdir, args))
-
-    def get_prove_line(extra_args=[]):
+    def prove(extra_args):
         line = ["gnatprove", "-P", "main", "--checks-as-errors",
                 "--level=0", "--no-axiom-guard"]
         line.extend(extra_args)
-        return line
-
-    def prove(extra_args=[]):
-        return c(get_prove_line(extra_args))
+        return c(line)
 
     c(["echo"])
     try:
@@ -210,7 +202,7 @@ def safe_run(workdir, mode, lab):
             main = doctor_main_gpr(workdir, False)
 
             # In "run" mode, first build, and then launch the main
-            if build() and main:
+            if build([]) and main:
                 if mode == "run":
                     # Check to see if cli.txt was sent from the front-end
                     cli_txt = os.path.join(workdir, CLI_FILE)
@@ -222,9 +214,7 @@ def safe_run(workdir, mode, lab):
                         # otherwise pass no arguments to the main
                         cli = ""
 
-                    errno, stdout = run(main, workdir, cli)
-                    for line in stdout:
-                        print("stdout: {}".format(line))
+                    run(main, workdir, cli)
                 else:
                     # mode == "submit"
                     # Check to see if lab has IO resources
@@ -239,7 +229,7 @@ def safe_run(workdir, mode, lab):
                         for line in io_lines:
                             match = LAB_IO_REGEX.match(line)
 
-                            if match is not None:
+                            if match:
                                 # found match(es)
                                 io = match.group(1)
                                 key = match.group(2)
@@ -257,17 +247,16 @@ def safe_run(workdir, mode, lab):
                         for index, test in sorted(test_cases.items()):
                             # check that this test case has defined ins and outs
                             if "in" in test.keys() and "out" in test.keys():
+                                print("---------------------------");
                                 print("stdin: {}".format(test["in"]))
                                 errno, stdout = run(main, workdir, "`echo {}`".format(test["in"]))
-                                for line in stdout:
-                                    print("stdout: {}".format(line))
                                 actual_out = " ".join(stdout).replace('\n', '').replace('\r', '')
                                 if actual_out != test["out"]:
                                     print("Test case #{} failed.\nOutput was: {}\nExpected: {}".format(index, actual_out, test["out"]))
                                     sys.exit(1)
                                 else:
                                     print("Test #{} passed.".format(index))
-
+                                print("---------------------------");
                             else:
                                 print("Cannot run test case #{}".format(index))
                                 sys.exit(1)
@@ -281,7 +270,7 @@ def safe_run(workdir, mode, lab):
 
         elif mode == "prove":
             doctor_main_gpr(workdir, spark_mode=True)
-            prove()
+            prove([])
         elif mode == "prove_flow":
             doctor_main_gpr(workdir, spark_mode=True)
             prove(["--mode=flow"])
