@@ -147,6 +147,7 @@ def doctor_main_gpr(tempd, spark_mode=False):
 
 
 def safe_run(workdir, mode, lab):
+
     def prefix_print(prefix, msg):
         print("{}:{}".format(prefix, msg))
 
@@ -156,13 +157,12 @@ def safe_run(workdir, mode, lab):
     def print_stderr(msg):
         prefix_print("stderr", msg)
 
-    def print_stdin(msg):
-        prefix_print("stdin", msg)
-
     def print_lab(success, cases):
         lab_output = {"success": success, "test_cases": cases}
         prefix_print("lab_output", json.dumps(lab_output))
 
+    def print_console(cmd_list):
+        prefix_print("console", " ".join(cmd_list).replace(workdir, '.'))
 
     def c(cl=[]):
         """Aux procedure, run the given command line and output to stdout."""
@@ -205,9 +205,10 @@ def safe_run(workdir, mode, lab):
         """Returns a tuple of (Boolean success, list stdout, returncode)."""
         line = ["gprbuild", "-q", "-P", "main", "-gnatwa"]
         line.extend(extra_args)
+        print_console(line)
         return c(line)
 
-    def run(main, workdir, args):
+    def run(main, workdir, arg_list):
         """Runs the application"""
         """Returns a tuple of (Boolean success, list stdout, returncode)."""
 
@@ -218,7 +219,9 @@ def safe_run(workdir, mode, lab):
         line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
                 'bash', '-c',
                 'LD_PRELOAD=/preloader.so {} {}'.format(
-                   os.path.join(workdir, main.split('.')[0]), args)]
+                   os.path.join(workdir, main.split('.')[0]), "`echo {}`".format(" ".join(arg_list)))]
+        print_list = []
+        print_console(["./{}".format(main)] + arg_list)
         return c(line)
 
     def prove(extra_args):
@@ -227,6 +230,7 @@ def safe_run(workdir, mode, lab):
         line = ["gnatprove", "-P", "main", "--checks-as-errors",
                 "--level=0", "--no-axiom-guard"]
         line.extend(extra_args)
+        print_console(line)
         return c(line)
 
     # This is necessary to get the first line from the container. Otherwise
@@ -242,12 +246,11 @@ def safe_run(workdir, mode, lab):
                     # Check to see if cli.txt was sent from the front-end
                     cli_txt = os.path.join(workdir, CLI_FILE)
                     if os.path.isfile(cli_txt):
-                        cli = "`cat {}`".format(cli_txt);
                         with open(cli_txt, 'r') as f:
-                            print_stdin(f.read().replace('\n', ' '))
+                            cli = f.read().split()
                     else:
                         # otherwise pass no arguments to the main
-                        cli = ""
+                        cli = []
 
                     run(main, workdir, cli)
                 else:
@@ -283,12 +286,11 @@ def safe_run(workdir, mode, lab):
                         for index, test in sorted(test_cases.items()):
                             # check that this test case has defined ins and outs
                             if "in" in test.keys() and "out" in test.keys():
-                                print_stdin(test["in"])
 
-                                errno, stdout, retcode = run(main, workdir, "`echo {}`".format(test["in"]))
+                                errno, stdout, retcode = run(main, workdir, test["in"].split())
                                 test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
 
-                                if test["actual"] != test["out"]:
+                                if retcode != 0 or test["actual"] != test["out"]:
                                     test["status"] = "Failed"
                                     success = False
                                 else:
