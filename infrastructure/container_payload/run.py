@@ -11,6 +11,7 @@ import io
 import re
 import os
 import codecs
+import json
 import glob
 import time
 import sys
@@ -146,143 +147,203 @@ def doctor_main_gpr(tempd, spark_mode=False):
 
 
 def safe_run(workdir, mode, lab):
+
+    def json_print(pdict):
+        print(json.dumps(pdict))
+
+    def print_stdout(msg):
+        json_print({"stdout": msg})
+
+    def print_stderr(msg):
+        json_print({"stderr": msg})
+
+    def print_lab(success, cases):
+        json_print({"lab_output": {"success": success, "test_cases": cases}})
+
+    def print_console(cmd_list):
+        json_print({"console": " ".join(cmd_list).replace(workdir, '.')})
+
     def c(cl=[]):
-        """Aux procedure, run the given command line and output to stdout."""
-        """Returns a tuple of (Boolean success, list stdout)."""
-        output_lines = []
+        """Aux procedure, run the given command line and output to stdout.
+
+        Parameters:
+        cl (list): The command list to be sent to popen
+
+        Returns:
+        tuple: of (Boolean success, list stdout, int returncode).
+        """
+
+        stdout_list = []
         try:
             debug_print("running: {}".format(cl))
 
             p = subprocess.Popen(cl, cwd=workdir,
-                                 stdout=subprocess.PIPE, shell=False)
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
             while True:
-                line = p.stdout.readline().replace(workdir, '.')
-                if line != '':
-                    print line
-                    output_lines.append(line)
+                stdout_line = p.stdout.readline().replace(workdir, '.')
+                stderr_line = p.stderr.readline().replace(workdir, '.')
+
+                if stderr_line:
+                    print_stderr(stderr_line)
+                    sys.stderr.flush()
+
+                if stdout_line:
+                    print_stdout(stdout_line)
+                    stdout_list.append(stdout_line)
                     sys.stdout.flush()
                 else:
                     p.poll()
                     break
 
             sys.stdout.flush()
-            if p.returncode == INTERRUPT_RETURNCODE:
-                print INTERRUPT_STRING
-            return True, output_lines
-        except Exception:
-            print "ERROR when running {}".format(' '.join(cl))
-            traceback.print_exc()
-            return False, output_lines
+            sys.stderr.flush()
 
+            if p.returncode == INTERRUPT_RETURNCODE:
+                print_stderr(INTERRUPT_STRING)
+            return True, stdout_list, p.returncode
+        except Exception:
+            print_stderr("ERROR when running {}".format(' '.join(cl)))
+            traceback.print_exc()
+            return False, stdout_list, p.returncode
+
+    def build(extra_args):
+        """Builds command string to build the application and passes that to c()
+
+        Parameters:
+        extra_args (list): The extra build arguments to be passed to the build
+
+        Returns:
+        tuple: of (Boolean success, list stdout, returncode).
+        """
+
+        line = ["gprbuild", "-q", "-P", "main", "-gnatwa"]
+        line.extend(extra_args)
+        print_console(line)
+        return c(line)
+
+    def run(main, workdir, arg_list):
+        """Builds command string to run the application and passes that to c()
+
+        Parameters:
+        main (string): The name of the main
+        workdir (string): The path of the working directory
+        arg_list (list): The arguments to be passed to the main
+
+        Returns:
+        tuple: of (Boolean success, list stdout, returncode).
+        """
+
+        # We run:
+        #  - as user 'unprivileged' that has no write access
+        #  - under a timeout
+        #  - with our ld preloader to prevent forks
+        line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
+                'bash', '-c',
+                'LD_PRELOAD=/preloader.so {} {}'.format(
+                   os.path.join(workdir, main.split('.')[0]), "`echo {}`".format(" ".join(arg_list)))]
+        print_list = []
+        print_console(["./{}".format(main)] + arg_list)
+        return c(line)
+
+    def prove(extra_args):
+        """Builds command string to prove the application and passes that to c()
+
+        Parameters:
+        extra_args (list): The extra gnatprove arguments to be passed to the prover
+
+        Returns:
+        tuple: of (Boolean success, list stdout, returncode).
+        """
+
+        line = ["gnatprove", "-P", "main", "--checks-as-errors",
+                "--level=0", "--no-axiom-guard"]
+        line.extend(extra_args)
+        print_console(line)
+        return c(line)
+
+    # This is necessary to get the first line from the container. Otherwise
+    # the first line is lost.
     c(["echo"])
     try:
-        if mode == "run":
+        if mode == "run" or mode == "submit":
             main = doctor_main_gpr(workdir, False)
 
-            # In "run" mode, first build, and then launch the main
-            if c(["gprbuild", "-q", "-P", "main", "-gnatwa"]):
-
-                # Check to see if cli.txt was sent from the front-end
-                cli_txt = os.path.join(workdir, CLI_FILE)
-                if os.path.isfile(cli_txt):
-                    # If it is found, read contents into string and replace
-                    #  newlines with spaces
-                    with open(cli_txt, 'r') as f:
-                        cli = f.read().replace('\n', ' ')
-                else:
-                    # otherwise pass no arguments to the main
-                    cli = ""
-
-                # We run:
-                #  - as user 'unprivileged' that has no write access
-                #  - under a timeout
-                #  - with our ld preloader to prevent forks
-                if main:
-                    line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
-                            'bash', '-c',
-                            'LD_PRELOAD=/preloader.so {} {}'.format(
-                              os.path.join(workdir, main.split('.')[0]), cli)]
-                    c(line)
-
-        elif mode == "submit":
-            main = doctor_main_gpr(workdir, False)
-
-            # In "submit" mode, first build, and then launch the main with test_cases
-            if c(["gprbuild", "-q", "-P", "main", "-gnatwa"]):
-                # Check to see if lab has IO resources
-                labio_txt = os.path.join(workdir, LAB_IO_FILE)
-                if os.path.isfile(labio_txt):
-                    # If it is found, read contents into string and replace
-                    #  newlines with spaces
-                    with open(labio_txt, 'r') as f:
-                        io_lines = f.readlines()
-
-                    # organize test instances
-                    test_cases = {}
-                    for line in io_lines:
-                        match = LAB_IO_REGEX.match(line)
-
-                        if match is not None:
-                            # found match(es)
-                            io = match.group(1)
-                            key = match.group(2)
-                            seq = match.group(3)
-
-                            if key in test_cases.keys():
-                                if io in test_cases[key].keys():
-                                    test_cases[key][io] += seq
-                                else:
-                                    test_cases[key][io] = seq
-                            else:
-                                test_cases[key] = {io: seq}
-
-                # Loop over IO resources and run all instances in sorted order by test case number
-                for index, test in sorted(test_cases.items()):
-                    # check that this test case has defined ins and outs
-                    if "in" in test.keys() and "out" in test.keys():
-                        # We run:
-                        #  - as user 'unprivileged' that has no write access
-                        #  - under a timeout
-                        #  - with our ld preloader to prevent forks
-                        if main:
-                            line = ['sudo', '-u', 'unprivileged', 'timeout', '10s',
-                                    'bash', '-c',
-                                    'LD_PRELOAD=/preloader.so {} {}'.format(
-                                      os.path.join(workdir, main.split('.')[0]), test["in"])]
-                            # TODO: get output and put it in actual_out
-                            success, actual_out_list = c(line)
-                            actual_out = " ".join(actual_out_list).replace('\n', '').replace('\r', '')
-                            if actual_out != test["out"]:
-                                print("Test case #{} failed. Output was {}. Expected {}.".format(index, actual_out, test["out"]))
-                                sys.exit(1)
-                            else:
-                                print("Test #{} passed.".format(index))
-
+            # In "run" or "submit" mode, build, and then launch the main
+            if build([])[2] == 0 and main:
+                if mode == "run":
+                    # Check to see if cli.txt was sent from the front-end
+                    cli_txt = os.path.join(workdir, CLI_FILE)
+                    if os.path.isfile(cli_txt):
+                        with open(cli_txt, 'r') as f:
+                            cli = f.read().split()
                     else:
-                        print("Cannot run test case #{}".format(index))
-                        sys.exit(1)
+                        # otherwise pass no arguments to the main
+                        cli = []
 
-                print("All test cases passed. Lab completed.")
+                    run(main, workdir, cli)
+                else:
+                    # mode == "submit"
+                    # Check to see if lab has IO resources
+                    labio_txt = os.path.join(workdir, LAB_IO_FILE)
+                    if os.path.isfile(labio_txt):
+                        # If it is found, read contents
+                        with open(labio_txt, 'r') as f:
+                            io_lines = f.readlines()
+
+                        # organize test instances
+                        test_cases = {}
+                        for line in io_lines:
+                            match = LAB_IO_REGEX.match(line)
+
+                            if match:
+                                # found match(es)
+                                io = match.group(1)
+                                key = match.group(2)
+                                seq = match.group(3)
+
+                                if key in test_cases.keys():
+                                    if io in test_cases[key].keys():
+                                        test_cases[key][io] += seq
+                                    else:
+                                        test_cases[key][io] = seq
+                                else:
+                                    test_cases[key] = {io: seq}
+
+                        # Loop over IO resources and run all instances in sorted order by test case number
+                        success = True
+                        for index, test in sorted(test_cases.items()):
+                            # check that this test case has defined ins and outs
+                            if "in" in test.keys() and "out" in test.keys():
+
+                                errno, stdout, retcode = run(main, workdir, test["in"].split())
+                                test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
+
+                                if retcode != 0 or test["actual"] != test["out"]:
+                                    test["status"] = "Failed"
+                                    success = False
+                                else:
+                                    test["status"] = "Success"
+                            else:
+                                print_stderr("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index))
+                                sys.exit(1)
+                        print_lab(success, test_cases)
+                    else:
+                        # No lab IO resources defined. This is an error in the lab config
+                        print_stderr("No submission criteria found for this lab. Please report this issue on https://github.com/AdaCore/learn/issues")
+            else:
+                print_stderr("Build failed...")
 
         elif mode == "prove":
             doctor_main_gpr(workdir, spark_mode=True)
-            line = ["gnatprove", "-P", "main", "--checks-as-errors",
-                    "--level=0", "--no-axiom-guard"]
-            c(line)
+            prove([])
         elif mode == "prove_flow":
             doctor_main_gpr(workdir, spark_mode=True)
-            line = ["gnatprove", "-P", "main", "--checks-as-errors",
-                    "--level=0", "--no-axiom-guard", "--mode=flow"]
-            c(line)
-
+            prove(["--mode=flow"])
         elif mode == "prove_report_all":
             doctor_main_gpr(workdir, spark_mode=True)
-            line = ["gnatprove", "-P", "main", "--checks-as-errors",
-                    "--level=0", "--no-axiom-guard", "--report=all"]
-            c(line)
-
+            prove(["--report=all"])
         else:
-            print "mode not implemented"
+            print_stderr("mode not implemented")
 
     except Exception:
         traceback.print_exc()
@@ -306,7 +367,7 @@ if __name__ == '__main__':
         else:
             lab = None
     else:
-        print "Error invoking run"
+        print_stderr("Error invoking run")
         sys.exit(1)
 
     # This is where the compiler is installed
