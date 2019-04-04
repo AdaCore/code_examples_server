@@ -148,25 +148,31 @@ def doctor_main_gpr(tempd, spark_mode=False):
 
 def safe_run(workdir, mode, lab):
 
-    def prefix_print(prefix, msg):
-        print("{}:{}".format(prefix, msg))
+    def json_print(pdict):
+        print(json.dumps(pdict))
 
     def print_stdout(msg):
-        prefix_print("stdout", msg)
+        json_print({"stdout": msg})
 
     def print_stderr(msg):
-        prefix_print("stderr", msg)
+        json_print({"stderr": msg})
 
     def print_lab(success, cases):
-        lab_output = {"success": success, "test_cases": cases}
-        prefix_print("lab_output", json.dumps(lab_output))
+        json_print({"lab_output": {"success": success, "test_cases": cases}})
 
     def print_console(cmd_list):
-        prefix_print("console", " ".join(cmd_list).replace(workdir, '.'))
+        json_print({"console": " ".join(cmd_list).replace(workdir, '.')})
 
     def c(cl=[]):
-        """Aux procedure, run the given command line and output to stdout."""
-        """Returns a tuple of (Boolean success, list stdout, returncode)."""
+        """Aux procedure, run the given command line and output to stdout.
+
+        Parameters:
+        cl (list): The command list to be sent to popen
+
+        Returns:
+        tuple: of (Boolean success, list stdout, int returncode).
+        """
+
         stdout_list = []
         try:
             debug_print("running: {}".format(cl))
@@ -177,11 +183,11 @@ def safe_run(workdir, mode, lab):
                 stdout_line = p.stdout.readline().replace(workdir, '.')
                 stderr_line = p.stderr.readline().replace(workdir, '.')
 
-                if stderr_line != '':
+                if stderr_line:
                     print_stderr(stderr_line)
                     sys.stderr.flush()
 
-                if stdout_line != '':
+                if stdout_line:
                     print_stdout(stdout_line)
                     stdout_list.append(stdout_line)
                     sys.stdout.flush()
@@ -201,16 +207,31 @@ def safe_run(workdir, mode, lab):
             return False, stdout_list, p.returncode
 
     def build(extra_args):
-        """Builds the application using static args and extra_args."""
-        """Returns a tuple of (Boolean success, list stdout, returncode)."""
+        """Builds command string to build the application and passes that to c()
+
+        Parameters:
+        extra_args (list): The extra build arguments to be passed to the build
+
+        Returns:
+        tuple: of (Boolean success, list stdout, returncode).
+        """
+
         line = ["gprbuild", "-q", "-P", "main", "-gnatwa"]
         line.extend(extra_args)
         print_console(line)
         return c(line)
 
     def run(main, workdir, arg_list):
-        """Runs the application"""
-        """Returns a tuple of (Boolean success, list stdout, returncode)."""
+        """Builds command string to run the application and passes that to c()
+
+        Parameters:
+        main (string): The name of the main
+        workdir (string): The path of the working directory
+        arg_list (list): The arguments to be passed to the main
+
+        Returns:
+        tuple: of (Boolean success, list stdout, returncode).
+        """
 
         # We run:
         #  - as user 'unprivileged' that has no write access
@@ -225,8 +246,15 @@ def safe_run(workdir, mode, lab):
         return c(line)
 
     def prove(extra_args):
-        """Proves the application"""
-        """Returns a tuple of (Boolean success, list stdout, returncode)."""
+        """Builds command string to prove the application and passes that to c()
+
+        Parameters:
+        extra_args (list): The extra gnatprove arguments to be passed to the prover
+
+        Returns:
+        tuple: of (Boolean success, list stdout, returncode).
+        """
+
         line = ["gnatprove", "-P", "main", "--checks-as-errors",
                 "--level=0", "--no-axiom-guard"]
         line.extend(extra_args)
