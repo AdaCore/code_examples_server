@@ -151,26 +151,23 @@ def safe_run(workdir, mode, lab):
     def json_print(pdict):
         print(json.dumps(pdict))
 
-    def print_stdout(msg, lab_ref=None):
+    def print_generic(msg, tag, lab_ref):
         obj = {"msg": msg}
         if lab_ref:
             obj["lab_ref"] = lab_ref
-        json_print({"stdout": obj})
+        json_print({tag: obj})
+
+    def print_stdout(msg, lab_ref=None):
+        print_generic(msg, "stdout", lab_ref)
 
     def print_stderr(msg, lab_ref=None):
-        obj = {"msg": msg}
-        if lab_ref:
-            obj["lab_ref"] = lab_ref
-        json_print({"stderr": obj})
+        print_generic(msg, "stderr", lab_ref)
 
     def print_lab(success, cases):
         json_print({"lab_output": {"success": success, "test_cases": cases}})
 
     def print_console(cmd_list, lab_ref=None):
-        obj = {"msg": " ".join(cmd_list).replace(workdir, '.')}
-        if lab_ref:
-            obj["lab_ref"] = lab_ref
-        json_print({"console": obj})
+        print_generic(" ".join(cmd_list).replace(workdir, '.'), "console", lab_ref)
 
     def c(cl=[], lab_ref=None):
         """Aux procedure, run the given command line and output to stdout.
