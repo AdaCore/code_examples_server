@@ -151,19 +151,28 @@ def safe_run(workdir, mode, lab):
     def json_print(pdict):
         print(json.dumps(pdict))
 
-    def print_stdout(msg):
-        json_print({"stdout": msg})
+    def print_stdout(msg, lab_ref=None):
+        obj = {"msg": msg}
+        if lab_ref:
+            obj["lab_ref"] = lab_ref
+        json_print({"stdout": obj})
 
-    def print_stderr(msg):
-        json_print({"stderr": msg})
+    def print_stderr(msg, lab_ref=None):
+        obj = {"msg": msg}
+        if lab_ref:
+            obj["lab_ref"] = lab_ref
+        json_print({"stderr": obj})
 
     def print_lab(success, cases):
         json_print({"lab_output": {"success": success, "test_cases": cases}})
 
-    def print_console(cmd_list):
-        json_print({"console": " ".join(cmd_list).replace(workdir, '.')})
+    def print_console(cmd_list, lab_ref=None):
+        obj = {"msg": " ".join(cmd_list).replace(workdir, '.')}
+        if lab_ref:
+            obj["lab_ref"] = lab_ref
+        json_print({"console": obj})
 
-    def c(cl=[]):
+    def c(cl=[], lab_ref=None):
         """Aux procedure, run the given command line and output to stdout.
 
         Parameters:
@@ -184,11 +193,11 @@ def safe_run(workdir, mode, lab):
                 stderr_line = p.stderr.readline().replace(workdir, '.')
 
                 if stderr_line:
-                    print_stderr(stderr_line)
+                    print_stderr(stderr_line.rstrip(), lab_ref)
                     sys.stderr.flush()
 
                 if stdout_line:
-                    print_stdout(stdout_line)
+                    print_stdout(stdout_line.rstrip(), lab_ref)
                     stdout_list.append(stdout_line)
                     sys.stdout.flush()
                 else:
@@ -199,11 +208,11 @@ def safe_run(workdir, mode, lab):
             sys.stderr.flush()
 
             if p.returncode == INTERRUPT_RETURNCODE:
-                print_stderr(INTERRUPT_STRING)
+                print_stderr(INTERRUPT_STRING, lab_ref)
             return True, stdout_list, p.returncode
         except Exception:
-            print_stderr("ERROR when running {}".format(' '.join(cl)))
-            traceback.print_exc()
+            print_stderr("ERROR when running {}".format(' '.join(cl)), lab_ref)
+            print_stderr(traceback.format_exc(), lab_ref)
             return False, stdout_list, p.returncode
 
     def build(extra_args):
@@ -221,7 +230,7 @@ def safe_run(workdir, mode, lab):
         print_console(line)
         return c(line)
 
-    def run(main, workdir, arg_list):
+    def run(main, workdir, arg_list, lab_ref=None):
         """Builds command string to run the application and passes that to c()
 
         Parameters:
@@ -242,8 +251,8 @@ def safe_run(workdir, mode, lab):
                 'LD_PRELOAD=/preloader.so {} {}'.format(
                    os.path.join(workdir, main.split('.')[0]), "`echo {}`".format(" ".join(arg_list)))]
         print_list = []
-        print_console(["./{}".format(main)] + arg_list)
-        return c(line)
+        print_console(["./{}".format(main)] + arg_list, lab_ref)
+        return c(line, lab_ref)
 
     def prove(extra_args):
         """Builds command string to prove the application and passes that to c()
@@ -315,7 +324,7 @@ def safe_run(workdir, mode, lab):
                             # check that this test case has defined ins and outs
                             if "in" in test.keys() and "out" in test.keys():
 
-                                errno, stdout, retcode = run(main, workdir, test["in"].split())
+                                errno, stdout, retcode = run(main, workdir, test["in"].split(), index)
                                 test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
 
                                 if retcode != 0 or test["actual"] != test["out"]:
