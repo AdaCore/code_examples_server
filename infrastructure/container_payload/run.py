@@ -333,7 +333,7 @@ def safe_run(workdir, mode, lab):
                                     if test["actual"] == test["out"]:
                                         test["status"] = "Success"
                                     else:
-                                        print_stderr("Program output ({}) does not match expected output ({}).".format(' '.join(str(ord(c)) for c in test["actual"]), ' '.join(str(ord(c)) for c in test["out"])))
+                                        print_stderr("Program output ({}) does not match expected output ({}).".format(test["actual"], test["out"]))
                                         test["status"] = "Failed"
                                         success = False
                             else:
