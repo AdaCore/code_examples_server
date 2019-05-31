@@ -27,7 +27,7 @@ CLI_FILE = "cli.txt"
 
 LAB_IO_FILE = "lab_io.txt"
 
-LAB_IO_REGEX = re.compile("(in|out) *(\d+): *(.*)")
+LAB_IO_REGEX = re.compile("(in|out) *(\d+): (.*)")
 
 
 COMMON_ADC = """
@@ -151,26 +151,23 @@ def safe_run(workdir, mode, lab):
     def json_print(pdict):
         print(json.dumps(pdict))
 
-    def print_stdout(msg, lab_ref=None):
+    def print_generic(msg, tag, lab_ref):
         obj = {"msg": msg}
         if lab_ref:
             obj["lab_ref"] = lab_ref
-        json_print({"stdout": obj})
+        json_print({tag: obj})
+
+    def print_stdout(msg, lab_ref=None):
+        print_generic(msg, "stdout", lab_ref)
 
     def print_stderr(msg, lab_ref=None):
-        obj = {"msg": msg}
-        if lab_ref:
-            obj["lab_ref"] = lab_ref
-        json_print({"stderr": obj})
+        print_generic(msg, "stderr", lab_ref)
 
     def print_lab(success, cases):
         json_print({"lab_output": {"success": success, "test_cases": cases}})
 
     def print_console(cmd_list, lab_ref=None):
-        obj = {"msg": " ".join(cmd_list).replace(workdir, '.')}
-        if lab_ref:
-            obj["lab_ref"] = lab_ref
-        json_print({"console": obj})
+        print_generic(" ".join(cmd_list).replace(workdir, '.'), "console", lab_ref)
 
     def c(cl=[], lab_ref=None):
         """Aux procedure, run the given command line and output to stdout.
@@ -327,11 +324,18 @@ def safe_run(workdir, mode, lab):
                                 errno, stdout, retcode = run(main, workdir, test["in"].split(), index)
                                 test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
 
-                                if retcode != 0 or test["actual"] != test["out"]:
+                                if retcode is not None and retcode != 0:
+                                    print_stderr("Process returned non-zero result: {}".format(retcode))
                                     test["status"] = "Failed"
                                     success = False
                                 else:
-                                    test["status"] = "Success"
+
+                                    if test["actual"] == test["out"]:
+                                        test["status"] = "Success"
+                                    else:
+                                        print_stderr("Program output ({}) does not match expected output ({}).".format(' '.join(str(ord(c)) for c in test["actual"]), ' '.join(str(ord(c)) for c in test["out"])))
+                                        test["status"] = "Failed"
+                                        success = False
                             else:
                                 print_stderr("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index))
                                 sys.exit(1)
