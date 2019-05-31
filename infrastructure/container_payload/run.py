@@ -14,7 +14,6 @@ import codecs
 import json
 import glob
 import time
-import string
 import sys
 import subprocess
 import traceback
