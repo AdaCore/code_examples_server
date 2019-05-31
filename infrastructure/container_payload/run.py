@@ -14,6 +14,7 @@ import codecs
 import json
 import glob
 import time
+import string
 import sys
 import subprocess
 import traceback
@@ -27,7 +28,7 @@ CLI_FILE = "cli.txt"
 
 LAB_IO_FILE = "lab_io.txt"
 
-LAB_IO_REGEX = re.compile("(in|out) *(\d+): *(.*)")
+LAB_IO_REGEX = re.compile("(in|out) *(\d+): (.*)")
 
 
 COMMON_ADC = """
@@ -324,11 +325,18 @@ def safe_run(workdir, mode, lab):
                                 errno, stdout, retcode = run(main, workdir, test["in"].split(), index)
                                 test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
 
-                                if retcode != 0 or test["actual"] != test["out"]:
+                                if retcode is not None and retcode != 0:
+                                    print_stderr("Process returned non-zero result: {}".format(retcode))
                                     test["status"] = "Failed"
                                     success = False
                                 else:
-                                    test["status"] = "Success"
+
+                                    if test["actual"] == test["out"]:
+                                        test["status"] = "Success"
+                                    else:
+                                        print_stderr("Program output ({}) does not match expected output ({}).".format(' '.join(str(ord(c)) for c in test["actual"]), ' '.join(str(ord(c)) for c in test["out"])))
+                                        test["status"] = "Failed"
+                                        success = False
                             else:
                                 print_stderr("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index))
                                 sys.exit(1)
