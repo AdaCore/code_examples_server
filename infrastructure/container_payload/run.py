@@ -325,7 +325,7 @@ def safe_run(workdir, mode, lab):
                                 test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
 
                                 if retcode is not None and retcode != 0:
-                                    print_stderr("Process returned non-zero result: {}".format(retcode))
+                                    print_stderr("Process returned non-zero result: {}".format(retcode), index)
                                     test["status"] = "Failed"
                                     success = False
                                 else:
@@ -333,11 +333,11 @@ def safe_run(workdir, mode, lab):
                                     if test["actual"] == test["out"]:
                                         test["status"] = "Success"
                                     else:
-                                        print_stderr("Program output ({}) does not match expected output ({}).".format(test["actual"], test["out"]))
+                                        print_stderr("Program output ({}) does not match expected output ({}).".format(test["actual"], test["out"]), index)
                                         test["status"] = "Failed"
                                         success = False
                             else:
-                                print_stderr("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index))
+                                print_stderr("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index), index)
                                 sys.exit(1)
                         print_lab(success, test_cases)
                     else:
