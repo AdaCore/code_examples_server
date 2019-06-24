@@ -47,11 +47,44 @@ pragma Warnings (Off, "subprogram * has no effect");
 pragma Warnings (Off, "file name does not match");
 """
 
+
 procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]*[ |\n]+(is|with)", re.MULTILINE)
+
+########################
+# Some print functions #
+########################
+
+
+def json_print(pdict):
+    print(json.dumps(pdict))
+
+
+def print_generic(msg, tag, lab_ref):
+    obj = {"msg": msg}
+    if lab_ref:
+        obj["lab_ref"] = lab_ref
+    json_print({tag: obj})
+
+
+def print_stdout(msg, lab_ref=None):
+    print_generic(msg, "stdout", lab_ref)
+
+
+def print_stderr(msg, lab_ref=None):
+    print_generic(msg, "stderr", lab_ref)
+
+
+def print_lab(success, cases):
+    json_print({"lab_output": {"success": success, "test_cases": cases}})
+
+
+def print_console(cmd_list, lab_ref=None):
+    print_generic(" ".join(cmd_list).replace(workdir, '.'), "console", lab_ref)
+
 
 def debug_print(str):
     if DEBUG:
-        print str
+        print_stdout(str)
 
 
 def run(command):
@@ -148,27 +181,6 @@ def doctor_main_gpr(tempd, spark_mode=False):
 
 def safe_run(workdir, mode, lab):
 
-    def json_print(pdict):
-        print(json.dumps(pdict))
-
-    def print_generic(msg, tag, lab_ref):
-        obj = {"msg": msg}
-        if lab_ref:
-            obj["lab_ref"] = lab_ref
-        json_print({tag: obj})
-
-    def print_stdout(msg, lab_ref=None):
-        print_generic(msg, "stdout", lab_ref)
-
-    def print_stderr(msg, lab_ref=None):
-        print_generic(msg, "stderr", lab_ref)
-
-    def print_lab(success, cases):
-        json_print({"lab_output": {"success": success, "test_cases": cases}})
-
-    def print_console(cmd_list, lab_ref=None):
-        print_generic(" ".join(cmd_list).replace(workdir, '.'), "console", lab_ref)
-
     def c(cl=[], lab_ref=None):
         """Aux procedure, run the given command line and output to stdout.
 
@@ -180,6 +192,7 @@ def safe_run(workdir, mode, lab):
         """
 
         stdout_list = []
+        p = None
         try:
             debug_print("running: {}".format(cl))
 
@@ -197,7 +210,8 @@ def safe_run(workdir, mode, lab):
                     print_stdout(stdout_line.rstrip(), lab_ref)
                     stdout_list.append(stdout_line)
                     sys.stdout.flush()
-                else:
+
+                if not (stderr_line or stdout_line):
                     p.poll()
                     break
 
@@ -210,7 +224,7 @@ def safe_run(workdir, mode, lab):
         except Exception:
             print_stderr("ERROR when running {}".format(' '.join(cl)), lab_ref)
             print_stderr(traceback.format_exc(), lab_ref)
-            return False, stdout_list, p.returncode
+            return False, stdout_list, (p.returncode if p else 404)
 
     def build(extra_args):
         """Builds command string to build the application and passes that to c()
