@@ -27,7 +27,7 @@ CLI_FILE = "cli.txt"
 
 LAB_IO_FILE = "lab_io.txt"
 
-LAB_IO_REGEX = re.compile("(in|out) *(\d+): *(.*)")
+LAB_IO_REGEX = re.compile("(in|out) ?(\d+):(.*)")
 
 
 COMMON_ADC = """
@@ -86,6 +86,8 @@ def debug_print(str):
     if DEBUG:
         print_stdout(str)
 
+def print_internal_error(msg, lab_ref=None):
+    print_generic(msg, "internal_error", lab_ref)
 
 def run(command):
     debug_print(">{}".format(" ".join(command)))
@@ -351,12 +353,12 @@ def safe_run(workdir, mode, lab):
                                         test["status"] = "Failed"
                                         success = False
                             else:
-                                print_stderr("Malformed test IO sequence in test case #{}. Please report this issue on https://github.com/AdaCore/learn/issues".format(index), index)
+                                print_internal_error("Malformed test IO sequence in test case #{}.".format(index), index)
                                 sys.exit(1)
                         print_lab(success, test_cases)
                     else:
                         # No lab IO resources defined. This is an error in the lab config
-                        print_stderr("No submission criteria found for this lab. Please report this issue on https://github.com/AdaCore/learn/issues")
+                        print_internal_error("No submission criteria found for this lab.")
             else:
                 print_stderr("Build failed...")
 
@@ -370,7 +372,7 @@ def safe_run(workdir, mode, lab):
             doctor_main_gpr(workdir, spark_mode=True)
             prove(["--report=all"])
         else:
-            print_stderr("mode not implemented")
+            print_internal_error("Mode not implemented.")
 
     except Exception:
         traceback.print_exc()
@@ -394,7 +396,7 @@ if __name__ == '__main__':
         else:
             lab = None
     else:
-        print_stderr("Error invoking run")
+        print_internal_error("Error invoking run.")
         sys.exit(1)
 
     # This is where the compiler is installed
