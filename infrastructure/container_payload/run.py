@@ -60,7 +60,9 @@ def json_print(pdict):
 
 
 def print_generic(msg, tag, lab_ref):
-    obj = {"msg": msg}
+    decoded_msg = msg.decode(encoding='utf-8', errors='replace')
+
+    obj = {"msg": decoded_msg}
     if lab_ref:
         obj["lab_ref"] = lab_ref
     json_print({tag: obj})
