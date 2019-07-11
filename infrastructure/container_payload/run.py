@@ -41,7 +41,7 @@ BUILD_FAILED_LABEL = "Build failed..."
 
 MODE_NOT_IMPL_LABEL = "Mode not implemented."
 
-ERROR_INVOKING_ERROR = "Error invoking run."
+ERROR_INVOKING_LABEL = "Error invoking run."
 
 FAILED_LABEL = "Failed"
 SUCCESS_LABEL = "Success"
@@ -414,7 +414,7 @@ if __name__ == '__main__':
         else:
             lab = None
     else:
-        print_internal_error(ERROR_INVOKING_ERROR)
+        print_internal_error(ERROR_INVOKING_LABEL)
         sys.exit(1)
 
     # This is where the compiler is installed
