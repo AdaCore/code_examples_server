@@ -242,7 +242,7 @@ def safe_run(workdir, mode, lab):
                 print_stderr(INTERRUPT_STRING, lab_ref)
             return True, stdout_list, p.returncode
         except Exception:
-            print_stderr("{}} {}".format(ERROR_WHEN_RUNNING_LABEL, ' '.join(cl)), lab_ref)
+            print_stderr("{} {}".format(ERROR_WHEN_RUNNING_LABEL, ' '.join(cl)), lab_ref)
             print_stderr(traceback.format_exc(), lab_ref)
             return False, stdout_list, (p.returncode if p else 404)
 
