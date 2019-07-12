@@ -32,7 +32,7 @@ LAB_IO_REGEX = re.compile("(in|out) ?(\d+):(.*)")
 ERROR_WHEN_RUNNING_LABEL = "ERROR when running"
 NONZERO_RESULT_LABEL = "Process returned non-zero result"
 
-OUTPUT_MISMATCH_LABEL = "Program output ({}) does not match expected output ({})."
+OUTPUT_MISMATCH_LABEL = "Program output does not match expected output."
 MALFORMED_TEST_LABEL = "Malformed test IO sequence in test case"
 
 NO_SUBMISSION_LABEL = "No submission criteria found for this lab."
@@ -367,7 +367,7 @@ def safe_run(workdir, mode, lab):
                                     if test["actual"] == test["out"]:
                                         test["status"] = SUCCESS_LABEL
                                     else:
-                                        print_stderr(OUTPUT_MISMATCH_LABEL.format(test["actual"], test["out"]), index)
+                                        print_stderr(OUTPUT_MISMATCH_LABEL, index)
                                         test["status"] = FAILED_LABEL
                                         success = False
                             else:
