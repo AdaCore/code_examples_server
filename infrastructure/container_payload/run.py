@@ -27,7 +27,7 @@ CLI_FILE = "cli.txt"
 
 LAB_IO_FILE = "lab_io.txt"
 
-LAB_IO_REGEX = re.compile("(in|out) ?(\d+):(.*)")
+LAB_IO_REGEX = re.compile('(in|out) ?\((\d+)\) ?= ?"(.*)"')
 
 
 COMMON_ADC = """
