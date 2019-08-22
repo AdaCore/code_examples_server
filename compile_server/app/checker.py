@@ -81,22 +81,22 @@ def check_output(request):
     p = process_handling.ProcessReader(
         os.path.join(tempfile.gettempdir(), identifier))
 
-    print received_json['already_read']
-    lines = p.read_lines(received_json['already_read'])
+    print received_json['read']
+    lines = p.read_lines(received_json['read'])
 
     # Remove some noise from the gnatprove output
-    lines = [l.strip() for l in lines if not l.startswith("Summary logged")]
+    # lines = [l.strip() for l in lines if not l.startswith("Summary logged")]
 
     returncode = p.poll()
     if returncode is None:
         # The program is still running: transmit the current lines
-        return CrossDomainResponse({'output_lines': lines,
+        return CrossDomainResponse({'output': lines,
                                     'status': 0,
                                     'completed': False,
                                     'message': "running"})
 
     else:
-        return CrossDomainResponse({'output_lines': lines,
+        return CrossDomainResponse({'output': lines,
                                     'status': returncode,
                                     'completed': True,
                                     'message': "completed"})

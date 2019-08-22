@@ -54,42 +54,49 @@ procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]*[ |\n]+(is|with)", r
 # Some print functions #
 ########################
 
+def clean_str(str):
+    return str.decode(encoding='utf-8', errors='replace')
+
 
 def json_print(pdict):
     print(json.dumps(pdict))
 
 
 def print_generic(msg, tag, lab_ref):
-    decoded_msg = msg.decode(encoding='utf-8', errors='replace')
-
-    obj = {"msg": decoded_msg}
+    obj = {"msg": {
+                    "type": tag,
+                    "data": msg,
+                  }
+          }
     if lab_ref:
-        obj["lab_ref"] = lab_ref
-    json_print({tag: obj})
+        obj["ref"] = lab_ref
+    json_print(obj)
 
 
 def print_stdout(msg, lab_ref=None):
-    print_generic(msg, "stdout", lab_ref)
+    print_generic(clean_str(msg), "stdout", lab_ref)
 
 
 def print_stderr(msg, lab_ref=None):
-    print_generic(msg, "stderr", lab_ref)
+    print_generic(clean_str(msg), "stderr", lab_ref)
 
 
 def print_lab(success, cases):
-    json_print({"lab_output": {"success": success, "test_cases": cases}})
+    print_generic({"success": success, "cases": cases}, "lab", None)
 
 
 def print_console(cmd_list, lab_ref=None):
-    print_generic(" ".join(cmd_list).replace(workdir, '.'), "console", lab_ref)
+    print_generic(clean_str(" ".join(cmd_list).replace(workdir, '.')), "console", lab_ref)
 
 
 def debug_print(str):
     if DEBUG:
         print_stdout(str)
 
+
 def print_internal_error(msg, lab_ref=None):
     print_generic(msg, "internal_error", lab_ref)
+
 
 def run(command):
     debug_print(">{}".format(" ".join(command)))

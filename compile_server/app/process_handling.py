@@ -10,6 +10,7 @@
 # ProcessReader.poll() until the processes are completed.
 
 import os
+import json
 import shutil
 import sys
 import subprocess
@@ -170,7 +171,8 @@ class ProcessReader(object):
         with open(self.output_file, "rb") as f:
             for x in f.readlines():
                 # Doctor: remove the mentions of working dir from output
-                lines.append(x.replace(self.working_dir, '.'))
+                doctored_line = x.replace(self.working_dir, '.')
+                lines.append(json.loads(doctored_line))
 
                 if x.strip() == INTERRUPT_STRING:
                     self.interrupt_detected = True
