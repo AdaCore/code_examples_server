@@ -1,14 +1,17 @@
-all: deploy_base_packages create_preloader install_gnat_community protect create_workspace
+all: deploy_base create_preloader install_gnat_community protect create_workspace
 
 
-deploy_base_packages:
+deploy_base:
+	# install packages
 	apt-get update -y
 	apt install -y gcc
 	apt install -y libfontconfig
 	apt install -y libx11-xcb-dev
 	apt install -y python
+	# limit the size of the journal
+	echo "SystemMaxUse=200" >> /etc/systemd/journald.conf
 	# do this only once
-	touch deploy_base_packages
+	touch deploy_base
 
 create_preloader:
 	# do this only once
