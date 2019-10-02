@@ -4,34 +4,24 @@ Prototype server for creating interactive "try SPARK / try Ada" webpages
 
 ## Requirements
 
-In addition to Python, this system relies on LXC to sandbox
-the run of executables. To do this, you need
-  - a container named "safecontainer"
-  - this container should have a non-admin user 'ubuntu'
+This project requires Vagrant and VirtualBox
 
 ## Getting started
 
-To setup, do this:
-```sh
+To setup run:
+```
+$ vagrant up
+$ vagrant ssh
 
-# This is to create the virtualenv and install Python stuff
-virtualenv env
-source env/bin/activate
-pip install -r REQUIREMENTS.txt
+# From the vagrant VM run:
 
-# This is to initialize the django database
- ./manage.py migrate
-
-# This is to get the ACE editor
-cd compile_server/app/static
-git clone https://github.com/ajaxorg/ace-builds.git
+$ cd /vagrant
+$ ./manage.py runserver 0.0.0.0
 ```
 
-To enter the environment, to this
-```sh
-source env/bin/activate
-```
+At this point you can point your browser on your host machine to 127.0.0.1:8000 to get to the code_examples_server index page or build the learn repo in local mode to point the widgets at localhost:8000
 
+## DB operations
 To enter some examples in the database, do this:
 ```sh
 ./manage.py fill_examples --dir=resources/example/hello_world
@@ -40,9 +30,4 @@ To enter some examples in the database, do this:
 To enter many examples in the database where the examples are listed in a yaml file, do this:
 ```sh
 ./manage.py fill_examples --conf=resources/test_conf.yaml
-```
-
-To launch the server, do this:
-```sh
-./manage.py runserver
 ```
