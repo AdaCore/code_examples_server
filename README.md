@@ -16,7 +16,7 @@ $ vagrant ssh
 # From the vagrant VM run:
 
 $ cd /vagrant
-$ ./manage.py runserver 0.0.0.0
+$ ./manage.py runserver 0.0.0.0:8000
 ```
 
 At this point you can point your browser on your host machine to 127.0.0.1:8000 to get to the code_examples_server index page or build the learn repo in local mode to point the widgets at localhost:8000
