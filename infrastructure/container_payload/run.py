@@ -47,6 +47,10 @@ pragma Warnings (Off, "subprogram * has no effect");
 pragma Warnings (Off, "file name does not match");
 """
 
+prove_modes = {"prove": [],
+               "prove_flow": ["--mode=flow"],
+               "prove_flow_report_all": ["--mode=flow", "--report=all"],
+               "prove_report_all": ["--report=all"]}
 
 procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]*[ |\n]+(is|with)", re.MULTILINE)
 
@@ -278,7 +282,7 @@ def safe_run(workdir, mode, lab):
         """
 
         line = ["gnatprove", "-P", "main", "--checks-as-errors",
-                "--level=0", "--no-axiom-guard"]
+                "--level=0", "--no-axiom-guard", "-q"]
         line.extend(extra_args)
         print_console(line)
         return c(line)
@@ -287,6 +291,7 @@ def safe_run(workdir, mode, lab):
     # the first line is lost.
     c(["echo"])
     try:
+        debug_print("mode: {}".format(mode))
         if mode == "run" or mode == "submit":
             main = doctor_main_gpr(workdir, False)
 
@@ -362,20 +367,15 @@ def safe_run(workdir, mode, lab):
             else:
                 print_stderr("Build failed...")
 
-        elif mode == "prove":
+        elif mode in prove_modes:
             doctor_main_gpr(workdir, spark_mode=True)
-            prove([])
-        elif mode == "prove_flow":
-            doctor_main_gpr(workdir, spark_mode=True)
-            prove(["--mode=flow"])
-        elif mode == "prove_report_all":
-            doctor_main_gpr(workdir, spark_mode=True)
-            prove(["--report=all"])
+            prove(prove_modes[mode])
+            print_stdout("gnatprove completed")
         else:
             print_internal_error("Mode not implemented.")
 
     except Exception:
-        traceback.print_exc()
+        print_internal_error(traceback.format_exc())
 
     finally:
         if os.path.isdir(workdir):
