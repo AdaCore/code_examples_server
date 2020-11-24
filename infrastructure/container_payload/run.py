@@ -29,6 +29,22 @@ LAB_IO_FILE = "lab_io.txt"
 
 LAB_IO_REGEX = re.compile("(in|out) ?(\d+):(.*)")
 
+ERROR_WHEN_RUNNING_LABEL = "ERROR when running"
+NONZERO_RESULT_LABEL = "Process returned non-zero result"
+
+OUTPUT_MISMATCH_LABEL = "Program output does not match expected output."
+MALFORMED_TEST_LABEL = "Malformed test IO sequence in test case"
+
+NO_SUBMISSION_LABEL = "No submission criteria found for this lab."
+
+BUILD_FAILED_LABEL = "Build failed..."
+
+MODE_NOT_IMPL_LABEL = "Mode not implemented."
+
+ERROR_INVOKING_LABEL = "Error invoking run."
+
+FAILED_LABEL = "Failed"
+SUCCESS_LABEL = "Success"
 
 COMMON_ADC = """
 pragma Restrictions (No_Specification_of_Aspect => Import);
@@ -224,7 +240,7 @@ def safe_run(workdir, mode, lab):
                 print_stderr(INTERRUPT_STRING, lab_ref)
             return True, stdout_list, p.returncode
         except Exception:
-            print_stderr("ERROR when running {}".format(' '.join(cl)), lab_ref)
+            print_stderr("{} {}".format(ERROR_WHEN_RUNNING_LABEL, ' '.join(cl)), lab_ref)
             print_stderr(traceback.format_exc(), lab_ref)
             return False, stdout_list, (p.returncode if p else 404)
 
@@ -341,26 +357,26 @@ def safe_run(workdir, mode, lab):
                                 test["actual"] = " ".join(stdout).replace('\n', '').replace('\r', '')
 
                                 if retcode is not None and retcode != 0:
-                                    print_stderr("Process returned non-zero result: {}".format(retcode), index)
-                                    test["status"] = "Failed"
+                                    print_stderr("{}: {}".format(NONZERO_RESULT_LABEL, retcode), index)
+                                    test["status"] = FAILED_LABEL
                                     success = False
                                 else:
 
                                     if test["actual"] == test["out"]:
-                                        test["status"] = "Success"
+                                        test["status"] = SUCCESS_LABEL
                                     else:
-                                        print_stderr("Program output ({}) does not match expected output ({}).".format(test["actual"], test["out"]), index)
-                                        test["status"] = "Failed"
+                                        print_stderr(OUTPUT_MISMATCH_LABEL, index)
+                                        test["status"] = FAILED_LABEL
                                         success = False
                             else:
-                                print_internal_error("Malformed test IO sequence in test case #{}.".format(index), index)
+                                print_internal_error("{} #{}.".format(MALFORMED_TEST_LABEL, index), index)
                                 sys.exit(1)
                         print_lab(success, test_cases)
                     else:
                         # No lab IO resources defined. This is an error in the lab config
-                        print_internal_error("No submission criteria found for this lab.")
+                        print_internal_error(NO_SUBMISSION_LABEL)
             else:
-                print_stderr("Build failed...")
+                print_stderr(BUILD_FAILED_LABEL)
 
         elif mode == "prove":
             doctor_main_gpr(workdir, spark_mode=True)
@@ -372,7 +388,7 @@ def safe_run(workdir, mode, lab):
             doctor_main_gpr(workdir, spark_mode=True)
             prove(["--report=all"])
         else:
-            print_internal_error("Mode not implemented.")
+            print_internal_error(MODE_NOT_IMPL_LABEL)
 
     except Exception:
         traceback.print_exc()
@@ -396,7 +412,7 @@ if __name__ == '__main__':
         else:
             lab = None
     else:
-        print_internal_error("Error invoking run.")
+        print_internal_error(ERROR_INVOKING_LABEL)
         sys.exit(1)
 
     # This is where the compiler is installed
