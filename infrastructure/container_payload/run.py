@@ -48,7 +48,7 @@ pragma Warnings (Off, "file name does not match");
 """
 
 
-procedure_re = re.compile("^procedure +[A-Za-z][_a-zA-Z0-9]*[ |\n]+(is|with)", re.MULTILINE)
+procedure_re = re.compile("^ *procedure +[A-Za-z][_a-zA-Z0-9]*[ |\n]+(is|with)", re.MULTILINE)
 
 ########################
 # Some print functions #
@@ -118,6 +118,7 @@ def extract_ada_main(workdir):
 
         if not procedure_re.findall(main_text):
             # This is not a main
+            debug_print("No main matched regex.")
             main = ''
 
         if len(mains) > 1:
@@ -291,7 +292,8 @@ def safe_run(workdir, mode, lab):
             main = doctor_main_gpr(workdir, False)
 
             # In "run" or "submit" mode, build, and then launch the main
-            if build([])[2] == 0 and main:
+            build_output = build([])
+            if build_output[2] == 0 and main:
                 if mode == "run":
                     # Check to see if cli.txt was sent from the front-end
                     cli_txt = os.path.join(workdir, CLI_FILE)
@@ -360,6 +362,7 @@ def safe_run(workdir, mode, lab):
                         # No lab IO resources defined. This is an error in the lab config
                         print_internal_error("No submission criteria found for this lab.")
             else:
+                debug_print("build_output: {}\nmain: {}".format(build_output, main))
                 print_stderr("Build failed...")
 
         elif mode == "prove":
