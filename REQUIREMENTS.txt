@@ -1,6 +1,6 @@
 Django==1.11.5
 django-cors-headers==2.1.0
-djangorestframework==3.6.4
+djangorestframework==3.11.2
 docutils==0.14
 Markdown==2.6.9
 Pygments==2.2.0
